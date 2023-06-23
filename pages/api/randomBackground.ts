@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { TextChannel } from 'discord.js';
 import { getGlobalDiscord } from '../../discord';
+import { getGlobalIO } from '../../socketio';
 
 const species = [
   'Huvarin',
@@ -171,16 +172,18 @@ export default async function handler(
   res: NextApiResponse,
 ) {
   if (req.method === 'GET') {
+    const generated = generate()
     const discord = await getGlobalDiscord();
     const channel = discord.channels.cache.get(
       '1120775031564275804',
     ) as TextChannel;
     if (channel) {
-      channel.send({ content: `Via API: ${generate()}` });
+      channel.send({ content: `Via API: ${generated}` });
+      const io = await getGlobalIO()
+      io.to('messageRoom').emit('message',generated)
       res.status(200).end();
       return;
     }
-    console.error('Failed');
     res.status(500).end();
   } else {
     res.status(404).end();

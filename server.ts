@@ -5,8 +5,7 @@ import express from 'express';
 import payload from 'payload';
 import { config as dotenv } from 'dotenv';
 import { getGlobalDiscord } from './discord';
-
-
+import { getGlobalIO } from './socketio'
 
 dotenv();
 
@@ -16,6 +15,7 @@ const server = express();
 
 const start = async () => {
   await getGlobalDiscord()
+  await getGlobalIO()
   await payload.init({
     secret: process.env.PAYLOAD_SECRET,
     mongoURL: process.env.MONGODB_URI,

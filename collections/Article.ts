@@ -6,9 +6,8 @@ import { Type as ImageType } from '../blocks/Image/Component';
 import { Type as CallToActionType } from '../blocks/CallToAction/Component';
 import { Content } from '../blocks/Content/Config';
 import { Type as ContentType } from '../blocks/Content/Component';
-import { getGlobalDiscord, sendMessage } from '../discord';
+import { getGlobalDiscord } from '../discord';
 import { TextChannel } from 'discord.js';
-import axios from 'axios'
 
 
 export type Layout = CallToActionType | ContentType | ImageType
@@ -23,15 +22,6 @@ export type Type = {
     description?: string
     keywords?: string
   }
-}
-
-const updateHook = async ({originalDoc,previousDoc}) => {
-  try {
-    getGlobalDiscord().then(c => (c.channels.cache.get('1120775031564275804') as TextChannel).send(originalDoc.title + " Updated!"))
-  } catch (e) {
-    console.error(e)
-  }
-  return null
 }
 
 export const Article: CollectionConfig = {
@@ -93,7 +83,18 @@ export const Article: CollectionConfig = {
           formatSlug('title'),
         ],
         afterChange: [
-          (args) => getGlobalDiscord().then(c => (c.channels.cache.get('1120775031564275804') as TextChannel).send(`Article **[${args.originalDoc.title}](https://niyala.net/lexicon/${args.originalDoc.slug})** has been Updated!`))
+          async (args) => {
+            const c = await getGlobalDiscord()
+            const channel = c.channels.cache.get('1120775031564275804') as TextChannel
+            const description = args.originalDoc.meta?.description 
+              ? `\n> ${args.originalDoc.meta.description}` 
+              : ""
+            if(Object.keys(args.previousDoc).length == 0) {
+              channel.send(`*New Article:* ***${args.originalDoc.title}*** https://niyala.net/compendium/${args.originalDoc.slug}${description}`.trim())
+              return;
+            }
+            channel.send(`*Updated Article:* ***${args.originalDoc.title}*** https://niyala.net/compendium/${args.originalDoc.slug}${description}`.trim())
+          }
         ]
       },
     },

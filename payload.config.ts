@@ -7,7 +7,9 @@ import Post from './collections/Post';
 import Tag from './collections/Tag';
 import Article from './collections/Article';
 const createDiscordPath = path.resolve(__dirname, 'discord');
-const mockDiscordPath = path.resolve(__dirname, 'utilities/mockDiscord.ts');
+const createIOPath = path.resolve(__dirname, 'socketio');
+const mockDiscordPath = path.resolve(__dirname, 'mocks/discord');
+const mockIOPath = path.resolve(__dirname, 'mocks/socketio');
 
 dotenv.config();
 
@@ -28,6 +30,7 @@ export default buildConfig({
         alias: {
           ...config.resolve.alias,
           [createDiscordPath]:mockDiscordPath,
+          [createIOPath]:mockIOPath, 
         }
       }
     })

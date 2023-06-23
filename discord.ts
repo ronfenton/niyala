@@ -13,14 +13,23 @@ export const getGlobalDiscord = async () => {
   const client = new Client({ intents: [GatewayIntentBits.Guilds]})
   setupSlashCommands()
   client.once(Events.ClientReady, c => {
-    console.log(`Ready! Logged in as ${c.user.tag} at ${new Date().toTimeString()}`)
+    discordConsole.log(`Ready! Logged in as ${c.user.tag} at ${new Date().toTimeString()}`)
   })
   client.on(Events.InteractionCreate, handleInteraction)
   client.login(process.env.DISCORD_TOKEN)
 
   globalDiscord.client = client
-  console.log("Discord Client created");
+  discordConsole.log("Discord Client created");
   return globalDiscord.client
+}
+
+const logTime = ():string => {
+  const now = new Date()
+  return `[${now.getUTCHours()}:${now.getUTCMinutes()}:${now.getUTCSeconds()}]`
+}
+
+export const discordConsole = {
+  log: (s:string) => console.log(`${logTime()} INFO (discord): ${s}`)
 }
 
 export const sendMessage = async (channel:string,message:string) => {
@@ -33,11 +42,11 @@ const setupSlashCommands = async () => {
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
   try {
-    console.log('Started refreshing application (/) commands.');
+    discordConsole.log('Started refreshing application (/) commands.');
   
     await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), { body: discordCommands });
   
-    console.log('Successfully reloaded application (/) commands.');
+    discordConsole.log('Successfully reloaded application (/) commands.');
   } catch (error) {
     console.error(JSON.stringify(error,null,2));
   }
