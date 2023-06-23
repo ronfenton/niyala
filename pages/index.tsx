@@ -1,5 +1,5 @@
 import { GetServerSideProps } from 'next';
-import Page, { getServerSideProps as sharedGetServerSideProps } from './[...slug]';
+import Page, { getServerSideProps as sharedGetServerSideProps } from './[slug]';
 
 export default Page;
 

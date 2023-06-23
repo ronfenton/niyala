@@ -1,4 +1,4 @@
-import { Client, REST, Routes, Events, GatewayIntentBits, Interaction } from 'discord.js';
+import { Client, REST, Routes, Events, GatewayIntentBits, Interaction, TextChannel } from 'discord.js';
 import { config as dotenv } from 'dotenv';
 import { generate } from './pages/api/randomBackground';
 
@@ -21,6 +21,12 @@ export const getGlobalDiscord = async () => {
   globalDiscord.client = client
   console.log("Discord Client created");
   return globalDiscord.client
+}
+
+export const sendMessage = async (channel:string,message:string) => {
+  const client = await getGlobalDiscord()
+  const c = client.channels.cache.get(channel) as TextChannel
+  c.send(message)
 }
 
 const setupSlashCommands = async () => {

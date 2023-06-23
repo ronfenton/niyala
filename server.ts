@@ -15,6 +15,7 @@ const dev = process.env.NODE_ENV !== 'production';
 const server = express();
 
 const start = async () => {
+  await getGlobalDiscord()
   await payload.init({
     secret: process.env.PAYLOAD_SECRET,
     mongoURL: process.env.MONGODB_URI,
@@ -23,7 +24,6 @@ const start = async () => {
 
   if (!process.env.NEXT_BUILD) {
     const nextApp = next({ dev });
-    getGlobalDiscord()
 
     const nextHandler = nextApp.getRequestHandler();
 
@@ -39,7 +39,7 @@ const start = async () => {
   } else {
     server.listen(process.env.PORT, async () => {
       console.log('NextJS is now building...');
-      await nextBuild(path.join(__dirname, '../'));
+      await nextBuild(path.join(__dirname, '../'), false, true, false, false, false, false, "default");
       process.exit();
     });
   }
