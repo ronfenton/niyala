@@ -26,6 +26,7 @@ export type Characteristic = {
   name: string,
   library?: LibraryReference,
   description: string,
+  tags: string[],
 }
 
 export type LibraryReference = {
@@ -60,11 +61,18 @@ export type Attribute = Characteristic & Levelled & {
 
 export type Skill = Characteristic & Levelled & {
   difficulty: number
-  
 }
 
 export type InventoryItem = Characteristic & {
   qty: number
   wt: number
   val: number
+}
+
+export type Module = {
+  name: string
+  id: string
+  attributes: {
+    [uuid:string]: Attribute
+  }
 }

@@ -9,6 +9,7 @@ export const attribute = (x:Partial<Attribute>):Attribute => {
     lvlMod: 0,
     lvlPurchase: 0,
     lvl:0,
+    tags:[],
     ...x
   }
   return a
