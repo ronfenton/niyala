@@ -75,4 +75,17 @@ export type Module = {
   attributes: {
     [uuid:string]: Attribute
   }
+  skills: {
+    [uuid:string]: Skill
+  }
+  templates: {  
+    [uuid:string]: CharacterTemplate
+    
+  }
+}
+
+export type CharacterTemplate = {
+  attributes: {
+    [uuid:string]: { level: number, modifiers: [] }
+  }
 }
