@@ -89,3 +89,25 @@ export type CharacterTemplate = {
     [uuid:string]: { level: number, modifiers: [] }
   }
 }
+
+export type PrompterSettings = {
+  title: string,
+  description: string,
+  permitCancel: boolean,
+}
+
+export interface Context {
+  state: CharacterState
+  logger: {
+    debug: (x:string) => void,
+    log: (x:string) => void,
+    warn: (x: string) => void,
+    error: (x: string) => void,
+    fatal: (x: string) => void,
+  },
+  prompter: {
+    yesno: (context:PrompterSettings) => boolean,
+    number: (context:PrompterSettings) => number,
+    select: (context:PrompterSettings,options:string[],defaultSelect:string) => string,
+  }
+}
