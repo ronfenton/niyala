@@ -1,4 +1,5 @@
-import type * as type from "./types"
+import type {Context,Characteristic,Character,CharacterState, Attribute} from "./types"
+import _ from "lodash/fp"
 
 /**
  * Completely wipes the registry, and iteratively recalculates every single item
@@ -7,7 +8,7 @@ import type * as type from "./types"
  * creation
  * @param c The character state to be reevaluated.
  */
-const RecalculateAll = (ctx:type.Context):type.CharacterState => {
+const RecalculateAll = (ctx:Context):CharacterState => {
   return ctx.state
 }
 
@@ -16,3 +17,15 @@ type InsertOptions = {
   keyOverride?: string
 }
 
+const insertAttribute = (ctx:Context,a:Attribute,opts:InsertOptions):Character => {
+  if(ctx.state.character.attributes[a.name] != undefined) {
+    switch (opts.conflictMethod) {
+      case "overwrite": 
+        return _.set(`state.character.attributes.${a.name}`,a)(ctx).state.character
+      case "ignore":
+        return ctx.state.character
+      default:
+        throw new Error(`Unhandled duplicate advantage on insert ${a.name}`)
+    }
+  }
+}

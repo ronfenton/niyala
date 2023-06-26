@@ -106,8 +106,9 @@ export interface Context {
     fatal: (x: string) => void,
   },
   prompter: {
-    yesno: (context:PrompterSettings) => boolean,
+    bool: (context:PrompterSettings) => boolean,
     number: (context:PrompterSettings) => number,
+    text: (context:PrompterSettings) => string,
     select: (context:PrompterSettings,options:string[],defaultSelect:string) => string,
   }
 }
