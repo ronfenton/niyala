@@ -1,10 +1,10 @@
-import { Attribute, Character } from "./types";
+import { Attribute, BaseType, Character } from "./types";
 
 export const attribute = (x:Partial<Attribute>):Attribute => {
   const a:Attribute = {
     name: 'Example Attribute',
     description: 'A token example **here**.',
-    base: '10',
+    base: { type: BaseType.VALUE, value: 10 },
     lvlBase: 10,
     lvlMod: 0,
     lvlPurchase: 0,

@@ -17,7 +17,7 @@ type InsertOptions = {
   keyOverride?: string
 }
 
-const insertAttribute = (ctx:Context,a:Attribute,opts:InsertOptions):Character => {
+const InsertAttribute = (ctx:Context,a:Attribute,opts:InsertOptions):Character => {
   if(ctx.state.character.attributes[a.name] != undefined) {
     switch (opts.conflictMethod) {
       case "overwrite": 

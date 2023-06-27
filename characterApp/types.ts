@@ -48,18 +48,23 @@ export type Identity = {
 }
 
 export type Levelled = {
-  base: string
-  lvlBase: number
   lvlPurchase: number
   lvlMod: number
   lvl: number
 }
 
-export type Attribute = Characteristic & Levelled & {
+export type BaseLevelled = Levelled & {
+  base: Base,
+  lvlBase: number,
+}
+
+export type Attribute = Characteristic & BaseLevelled & {
   abbreviation?: string
 }
 
 export type Skill = Characteristic & Levelled & {
+  bases: Base[],
+  lvlBase: number,
   difficulty: number
 }
 
@@ -112,3 +117,46 @@ export interface Context {
     select: (context:PrompterSettings,options:string[],defaultSelect:string) => string,
   }
 }
+
+export enum BaseType {
+  UNKNOWN,
+  VALUE,
+  MATH,
+  ATTRIBUTE,
+  SKILL,
+  TECHNIQUE
+}
+
+export type BaseValue = {
+  type: BaseType.VALUE,
+  value: number,
+}
+
+export type BaseOperation = {
+  type: BaseType.MATH,
+  operand: string,
+  a: Base,
+  b: Base,
+}
+
+export type BaseAttribute = {
+  type: BaseType.ATTRIBUTE,
+  key: string,
+  fallback: number,
+}
+
+export type BaseSkill = {
+  type: BaseType.SKILL,
+  key: string,
+  fallback: number,
+  attribute?: string,
+  techniques?: BaseTechnique[],
+}
+
+export type BaseTechnique = {
+  type: BaseType.TECHNIQUE,
+  key: string,
+  fallback: number,
+}
+
+export type Base = BaseValue | BaseAttribute | BaseSkill | BaseTechnique | BaseOperation
