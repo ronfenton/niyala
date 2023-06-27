@@ -17,13 +17,13 @@ type InsertOptions = {
   keyOverride?: string
 }
 
-const InsertAttribute = (ctx:Context,a:Attribute,opts:InsertOptions):Character => {
+const InsertAttribute = (ctx:Context,a:Attribute,opts:InsertOptions):CharacterState => {
   if(ctx.state.character.attributes[a.name] != undefined) {
     switch (opts.conflictMethod) {
       case "overwrite": 
-        return _.set(`state.character.attributes.${a.name}`,a)(ctx).state.character
+        return _.set(`state.character.attributes.${a.name}`,a)(ctx).state
       case "ignore":
-        return ctx.state.character
+        return ctx.state
       default:
         throw new Error(`Unhandled duplicate advantage on insert ${a.name}`)
     }

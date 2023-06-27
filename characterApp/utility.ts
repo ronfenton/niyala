@@ -9,7 +9,7 @@ import {
 } from "./types";
 import _ from "lodash/fp";
 
-const ParseBase = (b: Base, state: CharacterState): BaseResponse => {
+export const CalculateBase = (b: Base, state: CharacterState): BaseResponse => {
   switch (b.type) {
     case BaseType.VALUE:
       return {
@@ -31,8 +31,8 @@ const calcBaseMath = (
   base: BaseOperation,
   state: CharacterState
 ): BaseResponse => {
-  const a = ParseBase(base.a, state);
-  const b = ParseBase(base.b, state);
+  const a = CalculateBase(base.a, state);
+  const b = CalculateBase(base.b, state);
   switch (base.operand) {
     case "+":
       return {
