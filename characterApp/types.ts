@@ -1,6 +1,18 @@
 export type CharacterState = {
   character: Character
-  registry: any
+  registry: ListenerMap
+}
+
+export type ModdableValue = number | {
+  base: number,
+  modded: number,
+  mods: any[],
+}
+
+export type ModdableString = string | {
+  base: string,
+  modded: string,
+  mods: any[],
 }
 
 export type Character = {
@@ -32,13 +44,6 @@ export type Characteristic = {
 export type LibraryReference = {
   libraryId: string
   objectId: string
-}
-
-export type PermissionList = {
-  ownerId: string
-  gmId: string
-  viewerIds: string[]
-  editorIds: string[]
 }
 
 export type Identity = {
@@ -101,21 +106,38 @@ export type PrompterSettings = {
   permitCancel: boolean,
 }
 
-export interface Context {
+export type Context = {
   state: CharacterState
-  logger: {
-    debug: (x:string) => void,
-    log: (x:string) => void,
-    warn: (x: string) => void,
-    error: (x: string) => void,
-    fatal: (x: string) => void,
-  },
-  prompter: {
-    bool: (context:PrompterSettings) => boolean,
-    number: (context:PrompterSettings) => number,
-    text: (context:PrompterSettings) => string,
-    select: (context:PrompterSettings,options:string[],defaultSelect:string) => string,
-  }
+  logger: Logger
+  prompter: Prompter
+}
+
+export type Logger = {
+  debug: (x:string) => void
+  log: (x:string) => void
+  warn: (x: string) => void
+  error: (x: string) => void
+  fatal: (x: string) => void
+}
+
+export type Prompter = {
+  bool: (context:PrompterSettings) => boolean
+  number: (context:PrompterSettings) => number
+  text: (context:PrompterSettings) => string
+  select: (context:PrompterSettings,options:string[],defaultSelect:string) => string
+}
+
+export enum CharacterPermissionRole {
+  UNKNOWN,
+  OWNER,
+  GM,
+  EDITOR,
+  VIEWER,
+  ALLY,
+}
+
+export type PermissionList = {
+  [useruuid:string]: CharacterPermissionRole
 }
 
 export enum BaseType {
@@ -160,3 +182,16 @@ export type BaseTechnique = {
 }
 
 export type Base = BaseValue | BaseAttribute | BaseSkill | BaseTechnique | BaseOperation
+
+export type ListenerRecord = {
+  listenerPath: string,
+  func: string,
+}
+
+export type ListeningEvents = {
+  [eventName: string]:string[]
+}
+
+export type ListenerMap = {
+  [eventName:string]:ListenerRecord[]
+}

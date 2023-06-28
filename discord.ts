@@ -1,8 +1,9 @@
 import { Client, REST, Routes, Events, GatewayIntentBits, Interaction, TextChannel } from 'discord.js';
 import { config as dotenv } from 'dotenv';
 import { generate } from './pages/api/randomBackground';
+import type 
 
-dotenv()
+dotenv();
 
 const globalDiscord = global as unknown as { client: Client }
 
@@ -69,4 +70,12 @@ const handleInteraction = async (i:Interaction) => {
       await i.reply('Unknown Command')
       break;
   }
+}
+
+export const DiscordLogger = {
+  debug: (x:string) => getGlobalDiscord().then(c => (c.channels.cache.get('1120775031564275804') as TextChannel).send({content:`Debug: ${x}`})),
+  log: (x:string) => getGlobalDiscord().then(c => (c.channels.cache.get('1120775031564275804') as TextChannel).send({content:`Log: ${x}`})),
+  warn: (x: string) => getGlobalDiscord().then(c => (c.channels.cache.get('1120775031564275804') as TextChannel).send({content:`Warn: ${x}`})),
+  error: (x: string) => getGlobalDiscord().then(c => (c.channels.cache.get('1120775031564275804') as TextChannel).send({content:`ERROR: ${x}`})),
+  fatal: (x: string) => getGlobalDiscord().then(c => (c.channels.cache.get('1120775031564275804') as TextChannel).send({content:`FATAL: ${x}`})),
 }

@@ -6,6 +6,8 @@ import {
   Attribute,
   Skill,
   CharacterState,
+  ModdableValue,
+  ModdableString,
 } from "./types";
 import _ from "lodash/fp";
 
@@ -96,3 +98,61 @@ type BaseResponse = {
 };
 
 type CharacterItemPath = string;
+
+type ValueModifier = {
+  operand: "+" | "-" | "*" | "/",
+  value: number,
+  priority?: number,
+}
+
+type StringModifier = {
+  operand: "prepend" | "append",
+  value: string,
+  priority?:number,
+}
+
+export const calcModdedValue = (v:number,mods:ValueModifier[]):ModdableValue => {
+  if(mods.length == 0) { return v }
+  return {
+    base: v,
+    mods,
+    modded: mods.reduce((acc,m) => acc + m.value,v)
+  }
+}
+
+export const calcModdedString = (s:string,mods:StringModifier[]):ModdableString => {
+  if(mods.length == 0) { return s }
+  return {
+    base: s,
+    mods,
+    modded: mods.reduce((acc,m) => acc + m, s)
+  }
+}
+
+export const getModdedValue = (v:ModdableValue):number => {
+  if (typeof v === 'number') {
+    return v;
+  } 
+  return v.modded;
+}
+
+export const getModdedString = (s:ModdableString):string => {
+  if (typeof s === 'string') {
+    return s;
+  }
+  return s.modded;
+}
+
+export const getBaseValue = (v:ModdableValue):number => {
+  if (typeof v === 'number') {
+    return v;
+  } 
+  return v.base
+}
+
+export const getBaseString = (s:ModdableString):string => {
+  if (typeof s === 'string') {
+    return s;
+  } 
+  return s.base
+}
