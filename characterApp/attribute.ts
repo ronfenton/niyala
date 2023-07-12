@@ -10,7 +10,10 @@ const recalculateLevel = (ctx: Context, a:Attribute):Attribute => {
   }
 }
 
-export const RecalculateAll = (ctx:Context, a:Attribute):Attribute => {
-  return recalculateLevel(ctx, a)
+export const Recalculate = (ctx:Context, a:Attribute, k: string):Attribute => {
+  const final = recalculateLevel(ctx, a)
+  if(a.lvl != final.lvl) {
+    // return level changed event.
+  }
+  return final
 }
-
