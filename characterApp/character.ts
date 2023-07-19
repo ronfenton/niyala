@@ -1,5 +1,6 @@
-import type {Context,Characteristic,Character,CharacterState, Attribute} from "./types"
+import type {Characteristic,Character,CharacterState, Attribute, Environment} from "./types"
 import _ from "lodash/fp"
+import { StringToKey } from "./utility"
 
 /**
  * Completely wipes the registry, and iteratively recalculates every single item
@@ -8,8 +9,8 @@ import _ from "lodash/fp"
  * creation
  * @param c The character state to be reevaluated.
  */
-const RecalculateAll = (ctx:Context):CharacterState => {
-  return ctx.state
+const RecalculateAll = (s:CharacterState):CharacterState => {
+  return s
 }
 
 type InsertOptions = {
@@ -17,15 +18,41 @@ type InsertOptions = {
   keyOverride?: string
 }
 
-const InsertAttribute = (ctx:Context,a:Attribute,opts:InsertOptions):CharacterState => {
-  if(ctx.state.character.attributes[a.name] != undefined) {
-    switch (opts.conflictMethod) {
+export const InsertAttribute = (e:Environment,{character,registry}:CharacterState,a:Attribute,opts:InsertOptions):{state:CharacterState,events:string[]} => {
+  const defaultKey = AttributeToKey(a)
+  if(character.attributes[defaultKey] != undefined) {
+    const method = opts.conflictMethod === "prompt" ? e.prompter.select({
+      title: "",
+      description: "",
+      permitCancel: false
+    },[],"overwrite") : opts.conflictMethod
+    switch (method) {
       case "overwrite": 
-        return _.set(`state.character.attributes.${a.name}`,a)(ctx).state
+        return {
+          state: {
+            character:_.set(`attributes.${defaultKey}`,a)(character),
+            registry
+          },
+          events: []
+        }
       case "ignore":
-        return ctx.state
+        return {state:{character,registry},events:[]}
       default:
-        throw new Error(`Unhandled duplicate advantage on insert ${a.name}`)
+        throw new Error(`Unhandled duplicate attribute on insert ${a.name}`)
     }
   }
+  return {
+    state: {
+      character:_.set(`attributes.${defaultKey}`,a)(character),
+      registry
+    },
+    events:[
+      `AttributeCreated`,
+      `AttributeCreated-${defaultKey}`
+    ]
+  }
+}
+
+const AttributeToKey = (a:Attribute):string => {
+  return StringToKey(a.name)
 }

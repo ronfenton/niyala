@@ -1,7 +1,6 @@
 import { Client, REST, Routes, Events, GatewayIntentBits, Interaction, TextChannel } from 'discord.js';
 import { config as dotenv } from 'dotenv';
 import { generate } from './pages/api/randomBackground';
-import type 
 
 dotenv();
 

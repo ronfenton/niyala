@@ -1,17 +1,19 @@
 import {
   BaseType,
   Base,
-  BaseOperation,
-  BaseAttribute,
-  Attribute,
-  Skill,
   CharacterState,
   ModdableValue,
   ModdableString,
+  BaseBracket,
+  BaseAttribute,
+  Attribute,
 } from "./types";
 import _ from "lodash/fp";
 
 export const CalculateBase = (b: Base, state: CharacterState): BaseResponse => {
+  if(typeof b == "number") {
+    return { text: b.toString(), value: b, itemsActive: [], itemsWaiting:[]}
+  }
   switch (b.type) {
     case BaseType.VALUE:
       return {
@@ -20,75 +22,66 @@ export const CalculateBase = (b: Base, state: CharacterState): BaseResponse => {
         itemsActive: [],
         itemsWaiting: [],
       };
-    case BaseType.MATH:
-      return calcBaseMath(b, state);
+    case BaseType.BRACKET:
+      return calcBracket(b,state)
     case BaseType.ATTRIBUTE:
-      return calcBaseAttr(b, state);
+      return calcBasedAttribute(b,state)
     default:
-      return { text: "0", value: 0, itemsActive: [], itemsWaiting: [] };
+      throw new Error(`Calculating base - invalid base: ${b}`);
   }
 };
 
-const calcBaseMath = (
-  base: BaseOperation,
-  state: CharacterState
-): BaseResponse => {
-  const a = CalculateBase(base.a, state);
-  const b = CalculateBase(base.b, state);
-  switch (base.operand) {
-    case "+":
-      return {
-        text: `${a.text} + ${b.text}`,
-        value: a.value + b.value,
-        itemsActive: [...a.itemsActive, ...b.itemsActive],
-        itemsWaiting: [...a.itemsWaiting, ...b.itemsWaiting],
-      };
-    case "-":
-      return {
-        text: `${a.text} - ${b.text}`,
-        value: a.value - b.value,
-        itemsActive: [...a.itemsActive, ...b.itemsActive],
-        itemsWaiting: [...a.itemsWaiting, ...b.itemsWaiting],
-      };
-    case "*":
-      return {
-        text: `${a.text} * ${b.text}`,
-        value: a.value * b.value,
-        itemsActive: [...a.itemsActive, ...b.itemsActive],
-        itemsWaiting: [...a.itemsWaiting, ...b.itemsWaiting],
-      };
-    case "/":
-      return {
-        text: `${a.text} / ${b.text}`,
-        value: a.value / b.value,
-        itemsActive: [...a.itemsActive, ...b.itemsActive],
-        itemsWaiting: [...a.itemsWaiting, ...b.itemsWaiting],
-      };
-    default:
-      return a;
+const arithmetic = (operand,a,b) => {
+  switch(operand) {
+    case "+": return a + b;
+    case "-": return a - b;
+    case "x": return a * b;
+    case "/": return a / b;
+    default: throw new Error("unrecognized operand")
   }
-};
+}
 
-const calcBaseAttr = (
-  base: BaseAttribute,
-  state: CharacterState
-): BaseResponse => {
-  const attr = _.get(`attributes.${base.key}`)(state) as Attribute;
-  if (attr == undefined) {
+const calcBracket = (b: BaseBracket, state: CharacterState):BaseResponse => {
+  if(b.values.length !== b.operands.length + 1) {
+    throw new Error(`Bracket evaluation failed: ${b.values.length} values but ${b.operands.length} operands.`)
+  }
+  const calculatedValues = b.values.map(x => CalculateBase(x,state))
+
+  const helper = (values:number[],operands:string[]) => {
+    if(values.length === 1 || operands.length === 0) { return values[0] }
+    const operandPos = Math.max(operands.findIndex(x => x === "x" || x === "/"),0)
+    const result = arithmetic(operands[operandPos],values[operandPos],values[operandPos+1])
+    const remOperands = [ ...operands.slice(0,operandPos),...operands.slice(operandPos+1)]
+    const remValues = [...values.slice(0,operandPos),result,...values.slice(operandPos+2)]
+    return helper(remValues,remOperands)
+  }
+
+  const result = helper(calculatedValues.map(x => x.value),b.operands)
+
+  return { 
+    text: `( ${[...b.operands.map((x,i) => `${calculatedValues[i].text} ${x}`),calculatedValues[calculatedValues.length-1].text].join(" ")} )`, 
+    value: result, 
+    itemsActive: _.uniq(calculatedValues.reduce((list,result) => [...list,...result.itemsActive],[])), 
+    itemsWaiting: _.uniq(calculatedValues.reduce((list,result) => [...list,...result.itemsWaiting],[]))}
+}
+
+const calcBasedAttribute = (b:BaseAttribute, state:CharacterState):BaseResponse => {
+  const attr = _.get(b.key)(state.character.attributes) as Attribute
+  if(attr == undefined) {
     return {
-      text: `${base.key}`,
-      value: base.fallback,
-      itemsActive: [],
-      itemsWaiting: [],
-    };
+      text: `?${b.key}?(${b.fallback})`,
+      value: CalculateBase(b.fallback,state).value,
+      itemsActive:[],
+      itemsWaiting:[`attributes.${b.key}`]
+    }
   }
   return {
-    text: `${attr.name}`,
-    value: base.fallback,
-    itemsActive: [],
+    text: attr.abbreviation || attr.name,
+    value: attr.lvl,
+    itemsActive: [`attributes.${b.key}`],
     itemsWaiting: [],
-  };
-};
+  }
+}
 
 type BaseResponse = {
   text: string;
@@ -155,4 +148,8 @@ export const getBaseString = (s:ModdableString):string => {
     return s;
   } 
   return s.base
+}
+
+export const StringToKey = (s:string):string => {
+  return s.trim().replace(/[-\s]/g,"_")
 }

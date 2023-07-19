@@ -3,12 +3,16 @@
 export enum BaseType {
   UNKNOWN,
   VALUE,
-  MATH,
+  BRACKET,
+  TRIG,
+  AGGREGATE,
+  ROUND,
+  LOG,
+  POWER,
   ATTRIBUTE,
   SKILL,
-  TECHNIQUE
+  TECHNIQUE,
 }
-
 
 export type ModdableValue = number | {
   base: number,
@@ -28,8 +32,7 @@ export type PrompterSettings = {
   permitCancel: boolean,
 }
 
-export type Context = {
-  state: CharacterState
+export type Environment = {
   logger: Logger
   prompter: Prompter
 }
@@ -49,28 +52,33 @@ export type Prompter = {
   select: (context:PrompterSettings,options:string[],defaultSelect:string) => string
 }
 
+// For flat values without references; eg = 10.
 export type BaseValue = {
   type: BaseType.VALUE,
   value: number,
 }
 
-export type BaseOperation = {
-  type: BaseType.MATH,
-  operand: string,
-  a: Base,
-  b: Base,
+// For operations between two values; EG = a x b
+export type BaseOperand = "x" | "/" | "-" | "+"
+
+export type BaseBracket = {
+  type: BaseType.BRACKET,
+  values: Base[],
+  operands: BaseOperand[]
 }
 
+// For a value retrieved from an Attribute; where key is the attribute key, and fallback to be the value to use if the attribute is not found.
 export type BaseAttribute = {
   type: BaseType.ATTRIBUTE,
   key: string,
-  fallback: number,
+  fallback: Base,
 }
 
+// As skill.
 export type BaseSkill = {
   type: BaseType.SKILL,
   key: string,
-  fallback: number,
+  fallback: Base,
   attribute?: string,
   techniques?: BaseTechnique[],
 }
@@ -78,10 +86,10 @@ export type BaseSkill = {
 export type BaseTechnique = {
   type: BaseType.TECHNIQUE,
   key: string,
-  fallback: number,
+  fallback: Base,
 }
 
-export type Base = BaseValue | BaseAttribute | BaseSkill | BaseTechnique | BaseOperation
+export type Base = BaseValue | BaseBracket | BaseAttribute | BaseSkill | BaseTechnique | number
 
 ///////////////////////////////
 export type CharacterState = {

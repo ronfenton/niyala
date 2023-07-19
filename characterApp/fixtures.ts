@@ -10,6 +10,7 @@ export const attribute = (x:Partial<Attribute>):Attribute => {
     lvlPurchase: 0,
     lvl:0,
     tags:[],
+    listening:{},
     ...x
   }
   return a
