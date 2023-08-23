@@ -1,5 +1,4 @@
 import {
-  BaseType,
   Base,
   CharacterState,
   ModdableValue,
@@ -7,30 +6,14 @@ import {
   BaseBracket,
   BaseAttribute,
   Attribute,
+  Characteristic,
+  SubscribedCSEventsMap,
+  CostLevelMap,
 } from "./types";
+import * as enums from "./enums"
 import _ from "lodash/fp";
 
-export const CalculateBase = (b: Base, state: CharacterState): BaseResponse => {
-  if(typeof b == "number") {
-    return { text: b.toString(), value: b, itemsActive: [], itemsWaiting:[]}
-  }
-  switch (b.type) {
-    case BaseType.VALUE:
-      return {
-        text: b.value.toString(),
-        value: b.value,
-        itemsActive: [],
-        itemsWaiting: [],
-      };
-    case BaseType.BRACKET:
-      return calcBracket(b,state)
-    case BaseType.ATTRIBUTE:
-      return calcBasedAttribute(b,state)
-    default:
-      throw new Error(`Calculating base - invalid base: ${b}`);
-  }
-};
-
+// GENERIC FUNCTIONS
 const arithmetic = (operand,a,b) => {
   switch(operand) {
     case "+": return a + b;
@@ -39,69 +22,6 @@ const arithmetic = (operand,a,b) => {
     case "/": return a / b;
     default: throw new Error("unrecognized operand")
   }
-}
-
-const calcBracket = (b: BaseBracket, state: CharacterState):BaseResponse => {
-  if(b.values.length !== b.operands.length + 1) {
-    throw new Error(`Bracket evaluation failed: ${b.values.length} values but ${b.operands.length} operands.`)
-  }
-  const calculatedValues = b.values.map(x => CalculateBase(x,state))
-
-  const helper = (values:number[],operands:string[]) => {
-    if(values.length === 1 || operands.length === 0) { return values[0] }
-    const operandPos = Math.max(operands.findIndex(x => x === "x" || x === "/"),0)
-    const result = arithmetic(operands[operandPos],values[operandPos],values[operandPos+1])
-    const remOperands = [ ...operands.slice(0,operandPos),...operands.slice(operandPos+1)]
-    const remValues = [...values.slice(0,operandPos),result,...values.slice(operandPos+2)]
-    return helper(remValues,remOperands)
-  }
-
-  const result = helper(calculatedValues.map(x => x.value),b.operands)
-
-  return { 
-    text: `( ${[...b.operands.map((x,i) => `${calculatedValues[i].text} ${x}`),calculatedValues[calculatedValues.length-1].text].join(" ")} )`, 
-    value: result, 
-    itemsActive: _.uniq(calculatedValues.reduce((list,result) => [...list,...result.itemsActive],[])), 
-    itemsWaiting: _.uniq(calculatedValues.reduce((list,result) => [...list,...result.itemsWaiting],[]))}
-}
-
-const calcBasedAttribute = (b:BaseAttribute, state:CharacterState):BaseResponse => {
-  const attr = _.get(b.key)(state.character.attributes) as Attribute
-  if(attr == undefined) {
-    return {
-      text: `?${b.key}?(${b.fallback})`,
-      value: CalculateBase(b.fallback,state).value,
-      itemsActive:[],
-      itemsWaiting:[`attributes.${b.key}`]
-    }
-  }
-  return {
-    text: attr.abbreviation || attr.name,
-    value: attr.lvl,
-    itemsActive: [`attributes.${b.key}`],
-    itemsWaiting: [],
-  }
-}
-
-type BaseResponse = {
-  text: string;
-  value: number;
-  itemsActive: CharacterItemPath[];
-  itemsWaiting: CharacterItemPath[];
-};
-
-type CharacterItemPath = string;
-
-type ValueModifier = {
-  operand: "+" | "-" | "*" | "/",
-  value: number,
-  priority?: number,
-}
-
-type StringModifier = {
-  operand: "prepend" | "append",
-  value: string,
-  priority?:number,
 }
 
 export const calcModdedValue = (v:number,mods:ValueModifier[]):ModdableValue => {
@@ -150,6 +70,155 @@ export const getBaseString = (s:ModdableString):string => {
   return s.base
 }
 
-export const StringToKey = (s:string):string => {
+export const StringToValidKey = (s:string):string => {
   return s.trim().replace(/[-\s]/g,"_")
+}
+
+// COST TABLE FUNCTIONS
+export const CostMapLevelToPoints = (table:CostLevelMap, lvl:number) => {
+  const {
+    flat,
+    perLvl,
+    progression,
+    custom,
+  } = table
+
+  const ptsFromFlat = flat || 0
+  const ptsFromProgression = table.progression != undefined && lvl != 0
+    ? progression[Math.min(progression.length,lvl) - 1]
+    : 0
+  const ptsFromLevel = perLvl != undefined && lvl != 0 
+    ? progression != undefined 
+      ? Math.max(0,lvl - progression.length) * (progression[0] < 0 && perLvl > 0 ? perLvl*-1 : perLvl)
+      : perLvl * lvl
+    : 0
+  const ptsFromCustom = custom || 0
+
+  return ptsFromFlat + ptsFromProgression + ptsFromLevel + ptsFromCustom
+};
+
+export const CostMapPointsToLevel = (table:CostLevelMap, points:number) => {
+  const {
+    flat,
+    perLvl,
+    progression,
+    custom,
+  } = table
+
+  if(progression === undefined && perLvl === undefined) { return 0 }
+
+  const ptsAfterFlats = points - (flat || 0) - (custom || 0)
+
+  if(progression != undefined && perLvl != undefined) {
+    const lvlsFromProgression = progression.reduce((acc,val,i) => Math.abs(val)<=Math.abs(ptsAfterFlats) ? i+1 : acc,0)
+    if(lvlsFromProgression !== progression.length) { return lvlsFromProgression }
+    return lvlsFromProgression + Math.trunc((ptsAfterFlats - progression[progression.length-1]) / perLvl)
+  }
+
+  if(progression !== undefined) {
+    return progression.reduce((acc,val,i) => Math.abs(val)<=Math.abs(ptsAfterFlats) ? i+1 : acc,0)
+  }
+  return Math.trunc(ptsAfterFlats / perLvl)
+}
+
+// BASE FUNCTIONS
+export const CalculateBase = (b: Base, state: CharacterState): BaseResponse => {
+  if(typeof b == "number") {
+    return { text: b.toString(), value: b, listeners: []}
+  }
+  switch (b.type) {
+    case enums.BaseType.VALUE:
+      return {
+        text: b.value.toString(),
+        value: b.value,
+        listeners: [],
+      };
+    case enums.BaseType.BRACKET:
+      return calcBracket(b,state)
+    case enums.BaseType.ATTRIBUTE:
+      return calcBasedAttribute(b,state)
+    default:
+      throw new Error(`Calculating base - invalid base: ${b}`);
+  }
+};
+
+const calcBracket = (b: BaseBracket, state: CharacterState):BaseResponse => {
+  if(b.values.length !== b.operands.length + 1) {
+    throw new Error(`Bracket evaluation failed: ${b.values.length} values but ${b.operands.length} operands.`)
+  }
+  const calculatedValues = b.values.map(x => CalculateBase(x,state))
+
+  const helper = (values:number[],operands:string[]) => {
+    if(values.length === 1 || operands.length === 0) { return values[0] }
+    const operandPos = Math.max(operands.findIndex(x => x === "x" || x === "/"),0)
+    const result = arithmetic(operands[operandPos],values[operandPos],values[operandPos+1])
+    const remOperands = [ ...operands.slice(0,operandPos),...operands.slice(operandPos+1)]
+    const remValues = [...values.slice(0,operandPos),result,...values.slice(operandPos+2)]
+    return helper(remValues,remOperands)
+  }
+
+  const result = helper(calculatedValues.map(x => x.value),b.operands)
+
+  return { 
+    text: `( ${[...b.operands.map((x,i) => `${calculatedValues[i].text} ${x}`),calculatedValues[calculatedValues.length-1].text].join(" ")} )`, 
+    value: result, 
+    listeners: _.uniq(calculatedValues.reduce((list,result) => [...list,...result.listeners],[]))
+  }
+}
+
+const calcBasedAttribute = (b:BaseAttribute, state:CharacterState):BaseResponse => {
+  const attr = _.get(b.key)(state.character.attributes) as Attribute
+  if(attr == undefined) {
+    return {
+      text: `?${b.key}?(${b.fallback})`,
+      value: CalculateBase(b.fallback,state).value,
+      listeners: [
+        {eventName:'AttributeCreated',objectPath:`attributes.${b.key}`}
+      ]
+    }
+  }
+  return {
+    text: attr.abbreviation || attr.name,
+    value: getModdedValue(attr.lvl),
+    listeners: [
+      {eventName:'AttributeLevelChanged',objectPath:`attributes.${b.key}`},
+      {eventName:'AttributeDeleted',objectPath:`attributes.${b.key}`},
+    ]
+  }
+}
+
+export type CSListener = {
+  eventName: string,
+  objectPath: string,
+}
+
+export type BaseResponse = {
+  text: string;
+  value: number;
+  listeners: CSListener[];
+};
+
+type ValueModifier = {
+  operand: "+" | "-" | "*" | "/",
+  value: number,
+  priority?: number,
+}
+
+type StringModifier = {
+  operand: "prepend" | "append",
+  value: string,
+  priority?:number,
+}
+
+// EVENT SYSTEM
+
+
+export const withoutEmptyArray = (arr:any[],key:string) => {
+  if(arr.length === 0) return {}
+  return { [key]: arr }
+}
+
+export const withoutEmptyObject = (obj:object,key:string) => {
+  if(Object.keys(obj).length === 0) return {}
+  return { [key]: obj }
 }
