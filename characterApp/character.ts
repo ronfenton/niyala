@@ -1,6 +1,11 @@
-import type {Characteristic,Character,CharacterState, Attribute, Environment, CSEvent, CSAction, InsertOptions} from "./types"
+import type { CharacterState, Environment, CSEvent, CSAction, EventActionMap } from "./types"
 import _ from "lodash/fp"
-import { StringToValidKey } from "./utility"
+import { GetListenersForEvent } from "./eventSystem"
+import { AttributeEventsHandler } from "./attribute"
+
+const EventActionMap:EventActionMap = {
+  Attribute: AttributeEventsHandler
+}
 
 /**
  * Completely wipes the registry, and iteratively recalculates every single item
@@ -9,90 +14,39 @@ import { StringToValidKey } from "./utility"
  * creation
  * @param c The character state to be reevaluated.
  */
-const RecalculateAll = (s:CharacterState):CharacterState => {
+const RecalculateAll = (s: CharacterState): CharacterState => {
   return s
 }
 
-export const PerformAction = (env:Environment,state:CharacterState,action:CSAction) => {
-  const result = action(env,state)
-  
+export const PerformAction = (env: Environment, state: CharacterState, action: CSAction, eventActionMap: EventActionMap): CharacterState => {
+  const result = action(env, state)
+  return result.events.reduce(eventProcessor(env,eventActionMap),{state:result.state,events:[]}).state
 }
 
-export const processEvents = (env:Environment, state:CharacterState,events:CSEvent[]):CharacterState => {
-
-  const eventProcessor = (state:CharacterState, events:CSEvent[]):{state:CharacterState,events:CSEvent[]} => {
-
-    // if there are no events to perform: do nothing.
-    if(events === undefined || events.length === 0) { 
-      return { state, events: [] } 
-    }
-
-    // process all events and accumulate a new ongoing state, and any newly generated events.
-    const pass = events.reduce((acc,event) => { 
-      const res = handleEvent(env,acc.state,event); 
-      return { 
-        state: res.state, 
-        events:[...acc.events,...res.events]
+/**
+ * The event processor is an iterator for CSEvent arrays. It iterates over them
+ * in a breadth-first approach, until there are no more events, or an error.
+ * There is currently no recursion check
+ * TODO: Add recursion check.
+ * @param env 
+ * @param actionMap 
+ * @returns 
+ */
+const eventProcessor = (env:Environment,actionMap:EventActionMap): (acc:{state:CharacterState,events:CSEvent[]},event:CSEvent) => {state:CharacterState,events:CSEvent[]} => {
+  return (acc:{state:CharacterState,events:CSEvent[]},event:CSEvent):{state:CharacterState,events:CSEvent[]} => {
+    const listeners = GetListenersForEvent(acc.state.registry,event)
+    const result = listeners.reduce((listenerAcc,listener) => {
+      const actionResult = actionMap[listener.listenerType][listener.funcID](env,acc.state,listener.listenerPath,event.data)
+      return {
+        state:actionResult.state,
+        events:[...listenerAcc.events,...actionResult.events]
       }
-    },{state,events:[]})
+    },{state:acc.state,events:[]} as {state:CharacterState,events:CSEvent[]})
 
-    // If new events have been generated, process them.
-    // Use _.uniq to prevent repeated events.
-    if(pass.events.length > 0) {
-      return eventProcessor(pass.state,_.uniq(pass.events))
+    if(result.events.length === 0) {
+      return result
     }
 
-    // otherwise, return finally updated state with no events to process.
-      return { state: pass.state, events: [] }
+    return result.events.reduce(eventProcessor(env,actionMap),{state:result.state,events:[]} as {state:CharacterState,events:CSEvent[]})
   }
-
-  return eventProcessor(state,events).state
-}
-
-export const handleEvent = (env:Environment, state:CharacterState, events:CSEvent): {state:CharacterState,events:[]} => {
-
-  return {state,events:[]}
-}
-
-export const InsertAttribute = (a:Attribute,opts:InsertOptions):CSAction => {
-  return (env:Environment, {character,registry}:CharacterState) => {
-    const defaultKey = NameToKey(a)
-    if(character.attributes[defaultKey] != undefined) {
-      const method = opts.conflictMethod === "prompt" ? env.prompter.select({
-        title: "",
-        description: "",
-        permitCancel: false
-      },[],"overwrite") : opts.conflictMethod
-      switch (method) {
-        case "overwrite": 
-          return {
-            state: {
-              character:_.set(`attributes.${defaultKey}`,a)(character),
-              registry
-            },
-            events: [{name:'AttributeLevelUpdated',origin:defaultKey}]
-          }
-        case "ignore":
-          return {state:{character,registry},events:[]}
-        default:
-          throw new Error(`Unhandled duplicate attribute on insert ${a.name}`)
-      }
-    }
-    return {
-      state: {
-        character:_.set(`attributes.${defaultKey}`,a)(character),
-        registry
-      },
-      events:[
-        {
-          name:'Attribute Created',
-          origin: defaultKey
-        }
-      ]
-    }
-  }
-}
-
-const NameToKey = (a:Attribute):string => {
-  return StringToValidKey(a.name)
 }

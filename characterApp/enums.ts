@@ -9,7 +9,7 @@ export enum CharacterPermissionRole {
 
 export enum CSEventNames {
   ATTRIBUTE_CREATED = "AttributeCreated",
-  ATTRIBUTE_CHANGED_LEVEL = "AttributeChangedLevel",
+  ATTRIBUTE_LEVEL_CHANGED = "AttributeLevelChanged",
   ATTRIBUTE_DELETED = "AttributeDeleted",
 }
 

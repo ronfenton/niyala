@@ -11,28 +11,28 @@ const demoCharState = {
       "Health": fixtures.attribute({ name: "Health", abbreviation: "HT", lvl: 18 })
     }
   }),
-  registry: {}
+  registry: []
 }
 
 describe(`CalculateBase`, () => {
   describe('Given a non-\'Base\' type', () => {
     test('With the numeral 10, returns text 10 and value 10', () => {
       const base: Base = 10
-      const res = CalculateBase(base, demoCharState)
+      const res = CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
       expect(res).toHaveProperty('text', "10")
       expect(res).toHaveProperty('value', 10)
     })
     test.failing('With undefined, errors and fails', () => {
       const base: Base = undefined
-      CalculateBase(base, demoCharState)
+      CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
     })
     test.failing('With null, errors and fails', () => {
       const base: Base = null
-      CalculateBase(base, demoCharState)
+      CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
     })
     test.failing('With a string, errors and fails', () => {
       const base: Base = "10" as any
-      CalculateBase(base, demoCharState)
+      CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
     })
   })
   describe('Given a Bracketed Base', () => {
@@ -42,7 +42,7 @@ describe(`CalculateBase`, () => {
         values: [10, 5],
         operands: ["x"]
       }
-      const res = CalculateBase(base, demoCharState)
+      const res = CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
       expect(res).toHaveProperty('text', "( 10 x 5 )")
       expect(res).toHaveProperty('value', 50)
     })
@@ -52,7 +52,7 @@ describe(`CalculateBase`, () => {
         values: [10, 5, 2],
         operands: ["-", "x"]
       }
-      const res = CalculateBase(base, demoCharState)
+      const res = CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
       expect(res).toHaveProperty('text', "( 10 - 5 x 2 )")
       expect(res).toHaveProperty('value', 0)
     })
@@ -62,7 +62,7 @@ describe(`CalculateBase`, () => {
         values: [10, 5, 2],
         operands: ["-"]
       }
-      CalculateBase(base, demoCharState)
+      CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
     })
     test.failing('With two values and two operands; errors and fails', () => {
       const base: Base = {
@@ -70,7 +70,7 @@ describe(`CalculateBase`, () => {
         values: [10, 5],
         operands: ["-", "+"]
       }
-      CalculateBase(base, demoCharState)
+      CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
     })
   })
   describe('Given an Attribute Base', () => {
@@ -80,7 +80,7 @@ describe(`CalculateBase`, () => {
         key: "Dexterity",
         fallback: 10,
       }
-      const res = CalculateBase(base, demoCharState)
+      const res = CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
       expect(res).toHaveProperty('text', "DX")
       expect(res).toHaveProperty('value', 14)
       expect(res.listeners).toHaveLength(2)
@@ -91,7 +91,7 @@ describe(`CalculateBase`, () => {
         key: "Strength",
         fallback: 10,
       }
-      const res = CalculateBase(base, demoCharState)
+      const res = CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
       expect(res).toHaveProperty('text', "?Strength?(10)")
       expect(res).toHaveProperty('value', 10)
       expect(res.listeners).toHaveLength(1)
@@ -125,26 +125,38 @@ describe(`CalculateBase`, () => {
       const expectedState: BaseResponse = {
         listeners: [
           {
-            eventName: "AttributeLevelChanged",
-            objectPath: "attributes.Dexterity"
+            eventName: enums.CSEventNames.ATTRIBUTE_LEVEL_CHANGED,
+            origin: "attributes.Dexterity",
+            listenerType: "obj",
+            funcID:"func",
+            listenerPath: "listenerobj",
           },
           {
-            eventName: "AttributeDeleted",
-            objectPath: "attributes.Dexterity"
+            eventName: enums.CSEventNames.ATTRIBUTE_DELETED,
+            origin: "attributes.Dexterity",
+            listenerType: "obj",
+            funcID:"func",
+            listenerPath: "listenerobj",
           },
           {
-            eventName: "AttributeLevelChanged",
-            objectPath: "attributes.Health"
+            eventName: enums.CSEventNames.ATTRIBUTE_LEVEL_CHANGED,
+            origin: "attributes.Health",
+            listenerType: "obj",
+            funcID:"func",
+            listenerPath: "listenerobj",
           },
           {
-            eventName: "AttributeDeleted",
-            objectPath: "attributes.Health"
+            eventName: enums.CSEventNames.ATTRIBUTE_DELETED,
+            origin: "attributes.Health",
+            listenerType: "obj",
+            funcID:"func",
+            listenerPath: "listenerobj",
           }
         ],
         text: "( ( DX + HT ) / 4 )",
         value: 8
       }
-      expect(CalculateBase(base, demoCharState)).toStrictEqual(expectedState)
+      expect(CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})).toStrictEqual(expectedState)
     })
   })
 

@@ -24,6 +24,7 @@ export const character = (x:Partial<Character>):Character => {
     attributes: {},
     skills: {},
     items: {},
+    resources: {},
     version: { current: "0", last: "-1" },
     id: "0",
     ...x

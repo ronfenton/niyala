@@ -6,9 +6,8 @@ import {
   BaseBracket,
   BaseAttribute,
   Attribute,
-  Characteristic,
-  SubscribedCSEventsMap,
   CostLevelMap,
+  CSListenerRecord,
 } from "./types";
 import * as enums from "./enums"
 import _ from "lodash/fp";
@@ -122,7 +121,7 @@ export const CostMapPointsToLevel = (table:CostLevelMap, points:number) => {
 }
 
 // BASE FUNCTIONS
-export const CalculateBase = (b: Base, state: CharacterState): BaseResponse => {
+export const CalculateBase = (b: Base, state: CharacterState, eventDetail: {funcID:string,listenerType:string,listenerPath:string}): BaseResponse => {
   if(typeof b == "number") {
     return { text: b.toString(), value: b, listeners: []}
   }
@@ -134,19 +133,19 @@ export const CalculateBase = (b: Base, state: CharacterState): BaseResponse => {
         listeners: [],
       };
     case enums.BaseType.BRACKET:
-      return calcBracket(b,state)
+      return calcBracket(b,state, eventDetail)
     case enums.BaseType.ATTRIBUTE:
-      return calcBasedAttribute(b,state)
+      return calcBasedAttribute(b,state, eventDetail)
     default:
       throw new Error(`Calculating base - invalid base: ${b}`);
   }
 };
 
-const calcBracket = (b: BaseBracket, state: CharacterState):BaseResponse => {
+const calcBracket = (b: BaseBracket, state: CharacterState, eventDetail: {funcID:string,listenerType:string,listenerPath:string}):BaseResponse => {
   if(b.values.length !== b.operands.length + 1) {
     throw new Error(`Bracket evaluation failed: ${b.values.length} values but ${b.operands.length} operands.`)
   }
-  const calculatedValues = b.values.map(x => CalculateBase(x,state))
+  const calculatedValues = b.values.map(x => CalculateBase(x,state,eventDetail))
 
   const helper = (values:number[],operands:string[]) => {
     if(values.length === 1 || operands.length === 0) { return values[0] }
@@ -166,14 +165,14 @@ const calcBracket = (b: BaseBracket, state: CharacterState):BaseResponse => {
   }
 }
 
-const calcBasedAttribute = (b:BaseAttribute, state:CharacterState):BaseResponse => {
+const calcBasedAttribute = (b:BaseAttribute, state:CharacterState, eventDetail: {funcID:string,listenerType:string,listenerPath:string}):BaseResponse => {
   const attr = _.get(b.key)(state.character.attributes) as Attribute
   if(attr == undefined) {
     return {
       text: `?${b.key}?(${b.fallback})`,
-      value: CalculateBase(b.fallback,state).value,
+      value: CalculateBase(b.fallback,state,eventDetail).value,
       listeners: [
-        {eventName:'AttributeCreated',objectPath:`attributes.${b.key}`}
+        {eventName:enums.CSEventNames.ATTRIBUTE_CREATED,origin:`attributes.${b.key}`,...eventDetail}
       ]
     }
   }
@@ -181,21 +180,16 @@ const calcBasedAttribute = (b:BaseAttribute, state:CharacterState):BaseResponse 
     text: attr.abbreviation || attr.name,
     value: getModdedValue(attr.lvl),
     listeners: [
-      {eventName:'AttributeLevelChanged',objectPath:`attributes.${b.key}`},
-      {eventName:'AttributeDeleted',objectPath:`attributes.${b.key}`},
+      {eventName:enums.CSEventNames.ATTRIBUTE_LEVEL_CHANGED,origin:`attributes.${b.key}`,...eventDetail},
+      {eventName:enums.CSEventNames.ATTRIBUTE_DELETED,origin:`attributes.${b.key}`,...eventDetail},
     ]
   }
-}
-
-export type CSListener = {
-  eventName: string,
-  objectPath: string,
 }
 
 export type BaseResponse = {
   text: string;
   value: number;
-  listeners: CSListener[];
+  listeners: CSListenerRecord[];
 };
 
 type ValueModifier = {

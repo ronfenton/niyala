@@ -39,6 +39,11 @@ export type Prompter = {
   select: (context:PrompterSettings,options:string[],defaultSelect:string) => string
 }
 
+export type InsertOptions = {
+  conflictMethod?: "prompt" | "ignore" | "duplicate" | "overwrite" | "combinelevel" | "combinepoints" | "error",
+  keyOverride?: string
+}
+
 // For flat values without references; eg = 10.
 export type BaseValue = {
   type: ENUMS.BaseType.VALUE,
@@ -81,7 +86,7 @@ export type Base = BaseValue | BaseBracket | BaseAttribute | BaseSkill | BaseTec
 ///////////////////////////////
 export type CharacterState = {
   character: Character
-  registry: CSListenerMap
+  registry: CSListenerRecord[]
 }
 
 export type Ruleset = object
@@ -97,15 +102,30 @@ export type Character = {
   }
   items: {
     [uuid:string]: InventoryItem
+  },
+  resources: {
+    [key:string]: Resource
   }
 }
 
-export type InsertOptions = {
-  conflictMethod?: "prompt" | "ignore" | "duplicate" | "overwrite" | "combinelevel" | "combinepoints" | "error",
-  keyOverride?: string
+export type CSAction = (e:Environment,c:CharacterState) => {state:CharacterState,events:CSEvent[]}
+
+export type CSEventAction = (env:Environment, state:CharacterState,path:string,data:any) => {state:CharacterState,events:CSEvent[]}
+
+export type EventActionMap = {
+  [type:string]: {
+    [functionName:string]: CSEventAction
+  }
 }
 
-export type CSAction = (e:Environment,c:CharacterState) => {state:CharacterState,events:CSEvent[]}
+
+export type CSListenerRecord = {
+  eventName: string,
+  listenerPath: string,
+  listenerType: string,
+  origin?: string,
+  funcID: string,
+}
 
 export type Version = {
   current: string
@@ -117,7 +137,6 @@ export type Characteristic = {
   library?: LibraryReference,
   description: string,
   tags: string[],
-  subscribedEvents?: SubscribedCSEventsMap
 }
 
 export type LibraryReference = {
@@ -149,6 +168,13 @@ export type Attribute = Characteristic & Levelled & CostedObject & {
   abbreviation?: string
 }
 
+export type CharacteristicModifier = Characteristic & {
+  type: string, // Type of characteristic.
+  value: Base,
+  operand: string,
+  priority?: number,
+}
+
 export type Skill = Characteristic & Levelled & {
   bases: Base[],
   selBase: number,
@@ -159,6 +185,18 @@ export type InventoryItem = Characteristic & {
   qty: number
   wt: number
   val: number
+}
+
+export type Resource = {
+  value: number,
+  permitDebt: boolean,
+  transactions: TransactionRecord[]
+}
+
+export type TransactionRecord = {
+  time: Date,
+  value: number,
+  description: string,
 }
 
 export type Module = {
@@ -211,6 +249,12 @@ type FuncID = string
  * are supposed to be object paths within the character sheet.
  */
 type ObjectPath = string
+
+// Possibly replace this in event logic? Might make some things easier; reduce need for 'splits' and make key mapping
+type ObjectReference = {
+  type: string,
+  key: string,
+}
 
 /**
  * SubscribedCSEventsMap is a object-local record of which events it is listening to, 
