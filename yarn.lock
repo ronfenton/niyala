@@ -9471,6 +9471,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"nanoid@npm:^5.0.1":
+  version: 5.0.1
+  resolution: "nanoid@npm:5.0.1"
+  bin:
+    nanoid: bin/nanoid.js
+  checksum: fb5a57ec0563f12f101129b2f11fe50505e5f1219760c43e6ae30fc0a0d2aa269985f6d07ddea15e3bd4b24751c9ef14fa8117cbc80d410726429e2b37a4b13f
+  languageName: node
+  linkType: hard
+
 "napi-build-utils@npm:^1.0.1":
   version: 1.0.2
   resolution: "napi-build-utils@npm:1.0.2"
@@ -10153,6 +10162,7 @@ __metadata:
     express: ^4.18.0
     jest: ^29.6.1
     lodash: ^4.17.21
+    nanoid: ^5.0.1
     next: ^13.4.7
     payload: ^1.10.1
     react: ^18.2.0

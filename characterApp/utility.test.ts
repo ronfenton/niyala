@@ -1,7 +1,7 @@
 import { BaseResponse, CalculateBase, CostMapLevelToPoints, CostMapPointsToLevel} from "./utility";
 import { describe, expect, test } from "@jest/globals"
 import * as fixtures from "./fixtures"
-import { Base } from "./types";
+import { DerivedValue } from "./types";
 import * as enums from "./enums"
 
 const demoCharState = {
@@ -17,27 +17,27 @@ const demoCharState = {
 describe(`CalculateBase`, () => {
   describe('Given a non-\'Base\' type', () => {
     test('With the numeral 10, returns text 10 and value 10', () => {
-      const base: Base = 10
+      const base: DerivedValue = 10
       const res = CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
       expect(res).toHaveProperty('text', "10")
       expect(res).toHaveProperty('value', 10)
     })
     test.failing('With undefined, errors and fails', () => {
-      const base: Base = undefined
+      const base: DerivedValue = undefined
       CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
     })
     test.failing('With null, errors and fails', () => {
-      const base: Base = null
+      const base: DerivedValue = null
       CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
     })
     test.failing('With a string, errors and fails', () => {
-      const base: Base = "10" as any
+      const base: DerivedValue = "10" as any
       CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
     })
   })
   describe('Given a Bracketed Base', () => {
     test('With 10 x 5, returns text ( 10 x 5 ) and value 50', () => {
-      const base: Base = {
+      const base: DerivedValue = {
         type: enums.BaseType.BRACKET,
         values: [10, 5],
         operands: ["x"]
@@ -47,7 +47,7 @@ describe(`CalculateBase`, () => {
       expect(res).toHaveProperty('value', 50)
     })
     test('With 10 - 5 x 2, returns value 0, proving correct operand order', () => {
-      const base: Base = {
+      const base: DerivedValue = {
         type: enums.BaseType.BRACKET,
         values: [10, 5, 2],
         operands: ["-", "x"]
@@ -57,7 +57,7 @@ describe(`CalculateBase`, () => {
       expect(res).toHaveProperty('value', 0)
     })
     test.failing('With three values and only 1 operand; errors and fails', () => {
-      const base: Base = {
+      const base: DerivedValue = {
         type: enums.BaseType.BRACKET,
         values: [10, 5, 2],
         operands: ["-"]
@@ -65,7 +65,7 @@ describe(`CalculateBase`, () => {
       CalculateBase(base, demoCharState,{funcID:"func",listenerPath:"listenerobj",listenerType:"obj"})
     })
     test.failing('With two values and two operands; errors and fails', () => {
-      const base: Base = {
+      const base: DerivedValue = {
         type: enums.BaseType.BRACKET,
         values: [10, 5],
         operands: ["-", "+"]
@@ -75,7 +75,7 @@ describe(`CalculateBase`, () => {
   })
   describe('Given an Attribute Base', () => {
     test('With attribute equalling 14, returns 14', () => {
-      const base: Base = {
+      const base: DerivedValue = {
         type: enums.BaseType.ATTRIBUTE,
         key: "Dexterity",
         fallback: 10,
@@ -86,7 +86,7 @@ describe(`CalculateBase`, () => {
       expect(res.listeners).toHaveLength(2)
     })
     test('With attribute not existing and fallback value of 10, returns 10', () => {
-      const base: Base = {
+      const base: DerivedValue = {
         type: enums.BaseType.ATTRIBUTE,
         key: "Strength",
         fallback: 10,
@@ -99,7 +99,7 @@ describe(`CalculateBase`, () => {
   })
   describe('Given a complex base', () => {
     test('With an attempt to resolve (DX + HT)/4, when DX = 14 and HT = 18, returns text ( DX + HT ) / 4 and value 8', () => {
-      const base: Base = {
+      const base: DerivedValue = {
         type: enums.BaseType.BRACKET,
         values: [
           {

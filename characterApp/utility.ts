@@ -1,16 +1,18 @@
 import {
-  Base,
+  DerivedValue,
   CharacterState,
   ModdableValue,
   ModdableString,
-  BaseBracket,
-  BaseAttribute,
+  DerivedValueBracket,
+  DerivedValueAttribute,
   Attribute,
   CostLevelMap,
   CSListenerRecord,
+  CSTriggerRecord,
 } from "./types";
 import * as enums from "./enums"
 import _ from "lodash/fp";
+import { customAlphabet } from "nanoid";
 
 // GENERIC FUNCTIONS
 const arithmetic = (operand,a,b) => {
@@ -120,8 +122,12 @@ export const CostMapPointsToLevel = (table:CostLevelMap, points:number) => {
   return Math.trunc(ptsAfterFlats / perLvl)
 }
 
+export const TriggerListToListeners = (triggers:CSTriggerRecord[],funcID:string,listenerPath:string,listenerType:string):CSListenerRecord[] => {
+  return _.uniq([...triggers]).map(x => { return {...x, funcID, listenerPath, listenerType}})
+}
+
 // BASE FUNCTIONS
-export const CalculateBase = (b: Base, state: CharacterState, eventDetail: {funcID:string,listenerType:string,listenerPath:string}): BaseResponse => {
+export const CalculateBase = (b: DerivedValue, state: CharacterState, eventDetail: {funcID:string,listenerType:string,listenerPath:string}): BaseResponse => {
   if(typeof b == "number") {
     return { text: b.toString(), value: b, listeners: []}
   }
@@ -141,7 +147,7 @@ export const CalculateBase = (b: Base, state: CharacterState, eventDetail: {func
   }
 };
 
-const calcBracket = (b: BaseBracket, state: CharacterState, eventDetail: {funcID:string,listenerType:string,listenerPath:string}):BaseResponse => {
+const calcBracket = (b: DerivedValueBracket, state: CharacterState, eventDetail: {funcID:string,listenerType:string,listenerPath:string}):BaseResponse => {
   if(b.values.length !== b.operands.length + 1) {
     throw new Error(`Bracket evaluation failed: ${b.values.length} values but ${b.operands.length} operands.`)
   }
@@ -165,7 +171,7 @@ const calcBracket = (b: BaseBracket, state: CharacterState, eventDetail: {funcID
   }
 }
 
-const calcBasedAttribute = (b:BaseAttribute, state:CharacterState, eventDetail: {funcID:string,listenerType:string,listenerPath:string}):BaseResponse => {
+const calcBasedAttribute = (b:DerivedValueAttribute, state:CharacterState, eventDetail: {funcID:string,listenerType:string,listenerPath:string}):BaseResponse => {
   const attr = _.get(b.key)(state.character.attributes) as Attribute
   if(attr == undefined) {
     return {
@@ -216,3 +222,7 @@ export const withoutEmptyObject = (obj:object,key:string) => {
   if(Object.keys(obj).length === 0) return {}
   return { [key]: obj }
 }
+
+const nanoidAlpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+const nanoid = customAlphabet(nanoidAlpha,12)
+export const generateID = () => nanoid()

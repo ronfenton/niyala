@@ -45,7 +45,7 @@ export type InsertOptions = {
 }
 
 // For flat values without references; eg = 10.
-export type BaseValue = {
+export type DerivedValueExplicit = {
   type: ENUMS.BaseType.VALUE,
   value: number,
 }
@@ -53,35 +53,35 @@ export type BaseValue = {
 // For operations between two values; EG = a x b
 export type BaseOperand = "x" | "/" | "-" | "+"
 
-export type BaseBracket = {
+export type DerivedValueBracket = {
   type: ENUMS.BaseType.BRACKET,
-  values: Base[],
+  values: DerivedValue[],
   operands: BaseOperand[]
 }
 
 // For a value retrieved from an Attribute; where key is the attribute key, and fallback to be the value to use if the attribute is not found.
-export type BaseAttribute = {
+export type DerivedValueAttribute = {
   type: ENUMS.BaseType.ATTRIBUTE,
   key: string,
-  fallback: Base,
+  fallback: DerivedValue,
 }
 
 // As skill.
-export type BaseSkill = {
+export type DerivedValueSkill = {
   type: ENUMS.BaseType.SKILL,
   key: string,
-  fallback: Base,
+  fallback: DerivedValue,
   attribute?: string,
-  techniques?: BaseTechnique[],
+  techniques?: DerivedValueTechnique[],
 }
 
-export type BaseTechnique = {
+export type DerivedValueTechnique = {
   type: ENUMS.BaseType.TECHNIQUE,
   key: string,
-  fallback: Base,
+  fallback: DerivedValue,
 }
 
-export type Base = BaseValue | BaseBracket | BaseAttribute | BaseSkill | BaseTechnique | number
+export type DerivedValue = DerivedValueExplicit | DerivedValueBracket | DerivedValueAttribute | DerivedValueSkill | DerivedValueTechnique | number
 
 ///////////////////////////////
 export type CharacterState = {
@@ -105,7 +105,11 @@ export type Character = {
   },
   resources: {
     [key:string]: Resource
-  }
+  },
+  objectMods: {
+    [uuid:string]: ObjectModifier
+  },
+  objectModifierRegister?: ObjectModifierMap
 }
 
 export type CSAction = (e:Environment,c:CharacterState) => {state:CharacterState,events:CSEvent[]}
@@ -118,12 +122,14 @@ export type EventActionMap = {
   }
 }
 
-
-export type CSListenerRecord = {
+export type CSTriggerRecord = {
   eventName: string,
+  origin?: string,
+}
+
+export type CSListenerRecord = CSTriggerRecord & {
   listenerPath: string,
   listenerType: string,
-  origin?: string,
   funcID: string,
 }
 
@@ -151,7 +157,7 @@ export type Identity = {
 }
 
 export type Levelled = {
-  base: Base,
+  base: DerivedValue,
   lvlBase: number,
   lvlPurchase: number
   lvlMod: number
@@ -168,17 +174,28 @@ export type Attribute = Characteristic & Levelled & CostedObject & {
   abbreviation?: string
 }
 
-export type CharacteristicModifier = Characteristic & {
-  type: string, // Type of characteristic.
-  value: Base,
-  operand: string,
+export type Skill = Characteristic & Levelled & {
+  bases: DerivedValue[],
+  selBase: number,
+  difficulty: number
+}
+
+export type ObjectModifier = Characteristic & Levelled & {
+  subjectType: string,
+  subjectSelector: any,
+  targetKey: string,
+  subSelector?: any,
+  exclusionList: string[],
+  operand: ENUMS.Operands,
   priority?: number,
 }
 
-export type Skill = Characteristic & Levelled & {
-  bases: Base[],
-  selBase: number,
-  difficulty: number
+export type ObjectModifierMap = {
+  [objectType:string]: {
+    [objectKey:ObjectPath]: {
+      [targetKey:string]: ObjectPath[],
+    }
+  }
 }
 
 export type InventoryItem = Characteristic & {
@@ -210,7 +227,6 @@ export type Module = {
   }
   templates: {  
     [uuid:string]: CharacterTemplate
-    
   }
 }
 
