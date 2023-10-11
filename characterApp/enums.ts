@@ -14,9 +14,10 @@ export enum CSEventNames {
   MODIFIER_CREATED = "ModifierCreated",
   MODIFIER_DELETED = "ModifierDeleted",
   MODIFIER_EFFECT_CHANGED = "ModifierEffectChanged",
+  MODIFIER_SUBJECTS_CHANGED = "ModifierSubjectsChanged",
   MODIFIER_ENABLED = "ModifierEnabled",
   MODIFIER_DISABLED = "ModifierDisabled",
-  MODIFIER_SUBJECTS_CHANGED = "ModifierSubjectsChanged",
+  MODIFIER_FILTER_CHANGED = "ModifierFilterChanged",
 }
 
 export enum CostModType {
