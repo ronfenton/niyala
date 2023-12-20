@@ -25,6 +25,10 @@ module.exports = {
     'react/no-unused-prop-types': 'off',
     'react/require-default-props': 'off',
     'no-underscore-dangle': 'off',
+    'no-nested-ternary': 'off',
+    '@typescript-eslint/no-unused-vars': 'off',
+    'no-shadow': 'off',
+    '@typescript-eslint/no-shadow': ['error'],
     'import/extensions': [
       'error',
       'ignorePackages',

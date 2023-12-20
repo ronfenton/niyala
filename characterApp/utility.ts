@@ -1,228 +1,719 @@
+/* eslint-disable no-use-before-define */
+import _ from 'lodash/fp';
 import {
   DerivedValue,
   CharacterState,
   ModdableValue,
   ModdableString,
   DerivedValueBracket,
-  DerivedValueAttribute,
-  Attribute,
   CostLevelMap,
   CSListenerRecord,
   CSTriggerRecord,
-} from "./types";
-import * as enums from "./enums"
-import _ from "lodash/fp";
-import { customAlphabet } from "nanoid";
+  Characteristic,
+  DerivedValueCharacteristic,
+  DerivedValueResult,
+  ComparatorValue,
+  DerivedString,
+  DerivedStringCharacteristic,
+  DerivedStringResult,
+  Comparator,
+  ComparatorString,
+  ComparatorLogic,
+  ObjectModifierValue,
+} from './types';
+import * as enums from './enums';
+import { characteristicSettings } from './config';
+// import { customAlphabet } from "nanoid";
 
 // GENERIC FUNCTIONS
-const arithmetic = (operand,a,b) => {
-  switch(operand) {
-    case "+": return a + b;
-    case "-": return a - b;
-    case "x": return a * b;
-    case "/": return a / b;
-    default: throw new Error("unrecognized operand")
+const arithmetic = (operand, a, b) => {
+  switch (operand) {
+    case '+':
+      return a + b;
+    case '-':
+      return a - b;
+    case 'x':
+      return a * b;
+    case '/':
+      return a / b;
+    default:
+      throw new Error('unrecognized operand');
   }
-}
+};
 
-export const calcModdedValue = (v:number,mods:ValueModifier[]):ModdableValue => {
-  if(mods.length == 0) { return v }
-  return {
-    base: v,
-    mods,
-    modded: mods.reduce((acc,m) => acc + m.value,v)
+const sortArithmeticMods = (
+  a: ObjectModifierValue,
+  b: ObjectModifierValue,
+): number => {
+  if ((a.priority || 0) === (b.priority || 0)) {
+    const aoperandprio = a.operand === enums.ValueOperands.DIVIDE || enums.ValueOperands.FACTOR
+      ? 1
+      : 0;
+    const boperandprio = a.operand === enums.ValueOperands.DIVIDE || enums.ValueOperands.FACTOR
+      ? 1
+      : 0;
+    return aoperandprio - boperandprio;
   }
-}
+  return (a.priority || 0) - (b.priority || 0);
+};
 
-export const calcModdedString = (s:string,mods:StringModifier[]):ModdableString => {
-  if(mods.length == 0) { return s }
+export const getMods = (
+  type: enums.CharacteristicType,
+  key: string,
+  property: string,
+  state: CharacterState,
+): string[] => state.character.objectModifierRegister[type]?.[key]?.[property] || [];
+
+export const calcModdedValue = (
+  subject: Characteristic,
+  v: number,
+  modKeys: string[],
+  state: CharacterState,
+): { value: ModdableValue; triggers: CSTriggerRecord[] } => {
+  if (modKeys.length === 0) {
+    return { value: v, triggers: [] };
+  }
+  try {
+    const res = modKeys
+      .map((key) => state.character.objectMods[key].effect as ObjectModifierValue)
+      .sort(sortArithmeticMods)
+      .reduce(
+        (acc, mod) => {
+          const modVal = calcDerivedValue(mod.value, state, { subject });
+          return {
+            value: arithmetic(mod.operand, acc.value, modVal.value),
+            triggers: [...acc.triggers, ...modVal.updateTriggers],
+          };
+        },
+        { value: v, triggers: [] } as {
+          value: number;
+          triggers: CSTriggerRecord[];
+        },
+      );
+    return {
+      value: {
+        base: v,
+        mods: modKeys,
+        modded: res.value,
+      },
+      triggers: res.triggers,
+    };
+  } catch (e) {
+    console.error(e);
+    console.error(JSON.stringify(state.character.objectModifierRegister, null, 4));
+    console.error(JSON.stringify(state, null, 4));
+    return { value: v, triggers: [] };
+  }
+};
+
+export const calcModdedString = (
+  s: string,
+  mods: StringModifier[],
+): ModdableString => {
+  if (mods.length === 0) {
+    return s;
+  }
   return {
     base: s,
     mods,
-    modded: mods.reduce((acc,m) => acc + m, s)
-  }
-}
+    modded: mods.reduce((acc, m) => acc + m, s),
+  };
+};
 
-export const getModdedValue = (v:ModdableValue):number => {
+export const getModdedValue = (v: ModdableValue): number => {
   if (typeof v === 'number') {
     return v;
-  } 
+  }
   return v.modded;
-}
+};
 
-export const getModdedString = (s:ModdableString):string => {
+export const getModdedString = (s: ModdableString): string => {
   if (typeof s === 'string') {
     return s;
   }
   return s.modded;
-}
-
-export const getBaseValue = (v:ModdableValue):number => {
-  if (typeof v === 'number') {
-    return v;
-  } 
-  return v.base
-}
-
-export const getBaseString = (s:ModdableString):string => {
-  if (typeof s === 'string') {
-    return s;
-  } 
-  return s.base
-}
-
-export const StringToValidKey = (s:string):string => {
-  return s.trim().replace(/[-\s]/g,"_")
-}
-
-// COST TABLE FUNCTIONS
-export const CostMapLevelToPoints = (table:CostLevelMap, lvl:number) => {
-  const {
-    flat,
-    perLvl,
-    progression,
-    custom,
-  } = table
-
-  const ptsFromFlat = flat || 0
-  const ptsFromProgression = table.progression != undefined && lvl != 0
-    ? progression[Math.min(progression.length,lvl) - 1]
-    : 0
-  const ptsFromLevel = perLvl != undefined && lvl != 0 
-    ? progression != undefined 
-      ? Math.max(0,lvl - progression.length) * (progression[0] < 0 && perLvl > 0 ? perLvl*-1 : perLvl)
-      : perLvl * lvl
-    : 0
-  const ptsFromCustom = custom || 0
-
-  return ptsFromFlat + ptsFromProgression + ptsFromLevel + ptsFromCustom
 };
 
-export const CostMapPointsToLevel = (table:CostLevelMap, points:number) => {
-  const {
-    flat,
-    perLvl,
-    progression,
-    custom,
-  } = table
+export const getBaseValue = (v: ModdableValue): number => {
+  if (typeof v === 'number') {
+    return v;
+  }
+  return v.base;
+};
 
-  if(progression === undefined && perLvl === undefined) { return 0 }
+export const getBaseString = (s: ModdableString): string => {
+  if (typeof s === 'string') {
+    return s;
+  }
+  return s.base;
+};
 
-  const ptsAfterFlats = points - (flat || 0) - (custom || 0)
+export const stringToValidKey = (s: string): string => s.trim().replace(/[-\s]/g, '_');
 
-  if(progression != undefined && perLvl != undefined) {
-    const lvlsFromProgression = progression.reduce((acc,val,i) => Math.abs(val)<=Math.abs(ptsAfterFlats) ? i+1 : acc,0)
-    if(lvlsFromProgression !== progression.length) { return lvlsFromProgression }
-    return lvlsFromProgression + Math.trunc((ptsAfterFlats - progression[progression.length-1]) / perLvl)
+// COST TABLE FUNCTIONS
+export const costMapLevelToPoints = (
+  table: CostLevelMap,
+  lvl: number,
+): number => {
+  const { flat, perLvl, progression, custom } = table;
+
+  const ptsFromFlat = flat || 0;
+  const ptsFromProgression = table.progression !== undefined && lvl !== 0
+    ? progression[Math.min(progression.length, lvl) - 1]
+    : 0;
+  const ptsFromLevel = perLvl !== undefined && lvl !== 0
+    ? progression !== undefined
+      ? Math.max(0, lvl - progression.length)
+          * (progression[0] < 0 && perLvl > 0 ? perLvl * -1 : perLvl)
+      : perLvl * lvl
+    : 0;
+  const ptsFromCustom = custom || 0;
+
+  return ptsFromFlat + ptsFromProgression + ptsFromLevel + ptsFromCustom;
+};
+
+export const costMapPointsToLevel = (
+  table: CostLevelMap,
+  points: number,
+): number => {
+  const { flat, perLvl, progression, custom } = table;
+
+  if (progression === undefined && perLvl === undefined) {
+    return 0;
   }
 
-  if(progression !== undefined) {
-    return progression.reduce((acc,val,i) => Math.abs(val)<=Math.abs(ptsAfterFlats) ? i+1 : acc,0)
+  const ptsAfterFlats = points - (flat || 0) - (custom || 0);
+
+  if (progression !== undefined && perLvl !== undefined) {
+    const lvlsFromProgression = progression.reduce(
+      (acc, val, i) => (Math.abs(val) <= Math.abs(ptsAfterFlats) ? i + 1 : acc),
+      0,
+    );
+    if (lvlsFromProgression !== progression.length) {
+      return lvlsFromProgression;
+    }
+    return (
+      lvlsFromProgression
+      + Math.trunc((ptsAfterFlats - progression[progression.length - 1]) / perLvl)
+    );
   }
-  return Math.trunc(ptsAfterFlats / perLvl)
-}
 
-export const TriggerListToListeners = (triggers:CSTriggerRecord[],funcID:string,listenerPath:string,listenerType:string):CSListenerRecord[] => {
-  return _.uniq([...triggers]).map(x => { return {...x, funcID, listenerPath, listenerType}})
-}
+  if (progression !== undefined) {
+    return progression.reduce(
+      (acc, val, i) => (Math.abs(val) <= Math.abs(ptsAfterFlats) ? i + 1 : acc),
+      0,
+    );
+  }
+  return Math.trunc(ptsAfterFlats / perLvl);
+};
 
-// BASE FUNCTIONS
-export const CalculateBase = (b: DerivedValue, state: CharacterState, eventDetail: {funcID:string,listenerType:string,listenerPath:string}): BaseResponse => {
-  if(typeof b == "number") {
-    return { text: b.toString(), value: b, listeners: []}
+export const triggerListToListeners = (
+  triggers: CSTriggerRecord[],
+  funcID: string,
+  listeningCharKey: string,
+  listeningCharType: enums.CharacteristicType,
+): CSListenerRecord[] => _.uniq([...triggers]).map((x) => ({
+  ...x,
+  funcID,
+  listeningCharKey,
+  listeningCharType,
+}));
+
+export const calcDerivedString = (
+  d: DerivedString,
+  state: CharacterState,
+  context?: { subject?: Characteristic },
+): DerivedStringResult => {
+  if (typeof d === 'string') {
+    return { text: d, string: d, updateTriggers: [] };
+  }
+  switch (d.type) {
+    case enums.DerivedStringType.STRING:
+      return { text: d.value, string: d.value, updateTriggers: [] };
+    case enums.DerivedStringType.CHARACTERISTIC:
+      return calcDerivedStringFromCharacteristic(d, state, context);
+    default:
+      throw new Error('unrecognized type');
+  }
+};
+
+export const getComparatorEvents = (
+  c: Comparator,
+  state: CharacterState,
+): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
+  switch (c.type) {
+    case 'auto':
+      return { subjectEvents: [], externalEvents: [] };
+    case 'string': {
+      const a = getDerivedStringEvents(c.a, state);
+      const b = getDerivedStringEvents(c.b, state);
+      return {
+        subjectEvents: [...a.subjectEvents, ...b.subjectEvents],
+        externalEvents: [...a.externalEvents, ...b.externalEvents],
+      };
+    }
+    case 'value': {
+      const a = getDerivedValueEvents(c.a, state);
+      const b = getDerivedValueEvents(c.b, state);
+      return {
+        subjectEvents: [...a.subjectEvents, ...b.subjectEvents],
+        externalEvents: [...a.externalEvents, ...b.externalEvents],
+      };
+    }
+    case 'logic': {
+      return c.selectors.reduce(
+        (acc, sel) => {
+          const res = getComparatorEvents(sel, state);
+          return {
+            subjectEvents: [...acc.subjectEvents, ...res.subjectEvents],
+            externalEvents: [...acc.externalEvents, ...res.externalEvents],
+          };
+        },
+        { subjectEvents: [], externalEvents: [] },
+      );
+    }
+    default:
+      throw new Error('unrecognized type');
+  }
+};
+
+export const getDerivedStringEvents = (
+  d: DerivedString,
+  state: CharacterState,
+): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
+  if (typeof d === 'string') {
+    return { subjectEvents: [], externalEvents: [] };
+  }
+  switch (d.type) {
+    case enums.DerivedStringType.STRING:
+      return { subjectEvents: [], externalEvents: [] };
+    case enums.DerivedStringType.CHARACTERISTIC:
+      return getDerivedStringCharacteristicEvents(d, state);
+    default:
+      throw new Error('unrecognized type');
+  }
+};
+
+const getDerivedStringCharacteristicEvents = (
+  b: DerivedStringCharacteristic,
+  state: CharacterState,
+): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
+  const charTypeSettings = characteristicSettings[b.charType];
+  const propSettings = charTypeSettings.selectableValues?.[b.property];
+  if (b.key === '__subject') {
+    if (propSettings === undefined) {
+      return {
+        subjectEvents: [{ eventName: propSettings.changeEvent }],
+        externalEvents: [],
+      };
+    }
+  }
+  if (state.character[b.charType][b.key] === undefined) {
+    const fb = getDerivedStringEvents(b.fallback, state);
+    return {
+      subjectEvents: [...fb.subjectEvents],
+      externalEvents: [
+        ...fb.externalEvents,
+        {
+          eventName: charTypeSettings.createEvent,
+          origin: `${b.charType}.${b.key}`,
+        },
+      ],
+    };
+  }
+  return {
+    subjectEvents: [
+      { eventName: propSettings.changeEvent, origin: `${b.charType}.${b.key}` },
+      {
+        eventName: charTypeSettings.deleteEvent,
+        origin: `${b.charType}.${b.key}`,
+      },
+    ],
+    externalEvents: [],
+  };
+};
+
+export const getDerivedValueEvents = (
+  b: DerivedValue,
+  state: CharacterState,
+): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
+  if (typeof b === 'number') {
+    return { subjectEvents: [], externalEvents: [] };
   }
   switch (b.type) {
-    case enums.BaseType.VALUE:
+    case enums.DerivedValueType.VALUE:
+      return { subjectEvents: [], externalEvents: [] };
+    case enums.DerivedValueType.CHARACTERISTIC:
+      return getDerivedValueCharacteristicEvents(b, state);
+    case enums.DerivedValueType.BRACKET:
+      return getDerivedValueBracketEvents(b, state);
+    default:
+      throw new Error('unrecognized type');
+  }
+};
+
+const getDerivedValueBracketEvents = (
+  b: DerivedValueBracket,
+  state: CharacterState,
+): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => b.values.reduce(
+  (acc, val) => {
+    const evs = getDerivedValueEvents(val, state);
+    return {
+      subjectEvents: [...acc.subjectEvents, ...evs.subjectEvents],
+      externalEvents: [...acc.externalEvents, ...evs.externalEvents],
+    };
+  },
+  { subjectEvents: [], externalEvents: [] },
+);
+
+const getDerivedValueCharacteristicEvents = (
+  b: DerivedValueCharacteristic,
+  state: CharacterState,
+): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
+  const charTypeSettings = characteristicSettings[b.charType];
+  const propSettings = charTypeSettings.selectableValues?.[b.property];
+  if (b.key === '__subject') {
+    if (propSettings === undefined) {
+      return {
+        subjectEvents: [{ eventName: propSettings.changeEvent }],
+        externalEvents: [],
+      };
+    }
+  }
+  if (state.character[b.charType][b.key] === undefined) {
+    const fb = getDerivedValueEvents(b.fallback, state);
+    return {
+      subjectEvents: [...fb.subjectEvents],
+      externalEvents: [
+        ...fb.externalEvents,
+        {
+          eventName: charTypeSettings.createEvent,
+          origin: `${b.charType}.${b.key}`,
+        },
+      ],
+    };
+  }
+  return {
+    subjectEvents: [
+      { eventName: propSettings.changeEvent, origin: `${b.charType}.${b.key}` },
+      {
+        eventName: charTypeSettings.deleteEvent,
+        origin: `${b.charType}.${b.key}`,
+      },
+    ],
+    externalEvents: [],
+  };
+};
+
+// BASE FUNCTIONS
+export const calcDerivedValue = (
+  b: DerivedValue,
+  state: CharacterState,
+  context?: { parent?: string; subject?: Characteristic },
+): DerivedValueResult => {
+  if (typeof b === 'number') {
+    return { text: b.toString(), value: b, updateTriggers: [] };
+  }
+  switch (b.type) {
+    case enums.DerivedValueType.VALUE:
       return {
         text: b.value.toString(),
         value: b.value,
-        listeners: [],
+        updateTriggers: [],
       };
-    case enums.BaseType.BRACKET:
-      return calcBracket(b,state, eventDetail)
-    case enums.BaseType.ATTRIBUTE:
-      return calcBasedAttribute(b,state, eventDetail)
+    case enums.DerivedValueType.BRACKET:
+      return calcBracket(b, state, context);
+    case enums.DerivedValueType.CHARACTERISTIC:
+      return calcDerivedValueFromCharacteristic(b, state, context);
     default:
       throw new Error(`Calculating base - invalid base: ${b}`);
   }
 };
 
-const calcBracket = (b: DerivedValueBracket, state: CharacterState, eventDetail: {funcID:string,listenerType:string,listenerPath:string}):BaseResponse => {
-  if(b.values.length !== b.operands.length + 1) {
-    throw new Error(`Bracket evaluation failed: ${b.values.length} values but ${b.operands.length} operands.`)
+const calcBracket = (
+  b: DerivedValueBracket,
+  state: CharacterState,
+  context?: { parent?: string; subject?: Characteristic },
+): DerivedValueResult => {
+  if (b.values.length !== b.operands.length + 1) {
+    throw new Error(
+      `Bracket evaluation failed: ${b.values.length} values but ${b.operands.length} operands.`,
+    );
   }
-  const calculatedValues = b.values.map(x => CalculateBase(x,state,eventDetail))
+  const calculatedValues = b.values.map((x) => calcDerivedValue(x, state, context));
+  const updateTriggers = calculatedValues.reduce(
+    (acc, cvr) => [...acc, ...(cvr.updateTriggers || [])],
+    [],
+  );
 
-  const helper = (values:number[],operands:string[]) => {
-    if(values.length === 1 || operands.length === 0) { return values[0] }
-    const operandPos = Math.max(operands.findIndex(x => x === "x" || x === "/"),0)
-    const result = arithmetic(operands[operandPos],values[operandPos],values[operandPos+1])
-    const remOperands = [ ...operands.slice(0,operandPos),...operands.slice(operandPos+1)]
-    const remValues = [...values.slice(0,operandPos),result,...values.slice(operandPos+2)]
-    return helper(remValues,remOperands)
-  }
-
-  const result = helper(calculatedValues.map(x => x.value),b.operands)
-
-  return { 
-    text: `( ${[...b.operands.map((x,i) => `${calculatedValues[i].text} ${x}`),calculatedValues[calculatedValues.length-1].text].join(" ")} )`, 
-    value: result, 
-    listeners: _.uniq(calculatedValues.reduce((list,result) => [...list,...result.listeners],[]))
-  }
-}
-
-const calcBasedAttribute = (b:DerivedValueAttribute, state:CharacterState, eventDetail: {funcID:string,listenerType:string,listenerPath:string}):BaseResponse => {
-  const attr = _.get(b.key)(state.character.attributes) as Attribute
-  if(attr == undefined) {
-    return {
-      text: `?${b.key}?(${b.fallback})`,
-      value: CalculateBase(b.fallback,state,eventDetail).value,
-      listeners: [
-        {eventName:enums.CSEventNames.ATTRIBUTE_CREATED,origin:`attributes.${b.key}`,...eventDetail}
-      ]
+  const helper = (values: number[], operands: string[]) => {
+    if (values.length === 1 || operands.length === 0) {
+      return values[0];
     }
-  }
-  return {
-    text: attr.abbreviation || attr.name,
-    value: getModdedValue(attr.lvl),
-    listeners: [
-      {eventName:enums.CSEventNames.ATTRIBUTE_LEVEL_CHANGED,origin:`attributes.${b.key}`,...eventDetail},
-      {eventName:enums.CSEventNames.ATTRIBUTE_DELETED,origin:`attributes.${b.key}`,...eventDetail},
-    ]
-  }
-}
+    const operandPos = Math.max(
+      operands.findIndex((x) => x === 'x' || x === '/'),
+      0,
+    );
+    const result = arithmetic(
+      operands[operandPos],
+      values[operandPos],
+      values[operandPos + 1],
+    );
+    const remOperands = [
+      ...operands.slice(0, operandPos),
+      ...operands.slice(operandPos + 1),
+    ];
+    const remValues = [
+      ...values.slice(0, operandPos),
+      result,
+      ...values.slice(operandPos + 2),
+    ];
+    return helper(remValues, remOperands);
+  };
 
-export type BaseResponse = {
-  text: string;
-  value: number;
-  listeners: CSListenerRecord[];
+  const result = helper(
+    calculatedValues.map((x) => x.value),
+    b.operands,
+  );
+
+  return {
+    text: `( ${[
+      ...b.operands.map((x, i) => `${calculatedValues[i].text} ${x}`),
+      calculatedValues[calculatedValues.length - 1].text,
+    ].join(' ')} )`,
+    value: result,
+    updateTriggers: _.uniq(updateTriggers),
+  };
+};
+
+const calcDerivedValueFromCharacteristic = (
+  o: DerivedValueCharacteristic,
+  state: CharacterState,
+  context?: { subject?: Characteristic },
+): DerivedValueResult => {
+  const charSetting = characteristicSettings[o.charType];
+  const propSetting = charSetting.selectableValues[o.property];
+  if (propSetting === undefined) {
+    throw new Error(`${o.property} is not retrievable value on ${o.charType}`);
+  }
+  if (propSetting.type !== 'value' && propSetting.type !== 'moddableValue') {
+    throw new Error(
+      `${o.property} of ${o.charType} is not valid property type`,
+    );
+  }
+
+  // determine if this is a modifier subject value - often used for tests or relative adjustments.
+  const isSubject = o.key === '__subject';
+
+  // retrieve the correct attribute, accounting for Parent / Subject linkages.
+  const obj = isSubject
+    ? context.subject
+    : (_.get(o.key)(state.character[o.charType]) as Characteristic);
+
+  if (obj === undefined) {
+    const fb = calcDerivedValue(o.fallback, state, context);
+    return {
+      text: fb.text,
+      value: fb.value,
+      updateTriggers: [
+        ...fb.updateTriggers,
+        ...(!isSubject
+          ? [
+            {
+              eventName: charSetting.createEvent,
+              origin: `${o.charType}.${o.key}`,
+            },
+          ]
+          : []),
+      ],
+    };
+  }
+
+  const value = o.unmodded
+    ? getBaseValue(obj[o.property])
+    : getModdedValue(obj[o.property]);
+
+  return {
+    text: propSetting.stringFunc(obj),
+    value,
+    updateTriggers: !isSubject
+      ? [
+        {
+          eventName: charSetting.deleteEvent,
+          origin: `${o.charType}.${o.key}`,
+        },
+        {
+          eventName: propSetting.changeEvent,
+          origin: `${o.charType}.${o.key}`,
+        },
+      ]
+      : [],
+  };
+};
+
+const calcDerivedStringFromCharacteristic = (
+  o: DerivedStringCharacteristic,
+  state: CharacterState,
+  context?: { subject?: Characteristic },
+): DerivedStringResult => {
+  const charSetting = characteristicSettings[o.charType];
+  const propSetting = charSetting.selectableValues[o.property];
+  if (propSetting === undefined) {
+    throw new Error(`${o.property} is not retrievable value on ${o.charType}`);
+  }
+  if (propSetting.type !== 'string' && propSetting.type !== 'moddableString') {
+    throw new Error(
+      `${o.property} of ${o.charType} is not valid property type`,
+    );
+  }
+
+  // determine if this is a modifier subject value - often used for tests or relative adjustments.
+  const isSubject = o.key === '__subject';
+
+  // retrieve the correct attribute, accounting for Parent / Subject linkages.
+  const obj = isSubject
+    ? context.subject
+    : (_.get(o.key)(state.character[o.charType]) as Characteristic);
+
+  if (obj === undefined) {
+    const fb = calcDerivedString(o.fallback, state, context);
+    return {
+      text: fb.text,
+      string: fb.string,
+      updateTriggers: [
+        ...fb.updateTriggers,
+        ...(!isSubject
+          ? [
+            {
+              eventName: charSetting.createEvent,
+              origin: `${o.charType}.${o.key}`,
+            },
+          ]
+          : []),
+      ],
+    };
+  }
+
+  const string = obj[o.property];
+
+  return {
+    text: propSetting.stringFunc(obj),
+    string,
+    updateTriggers: !isSubject
+      ? [
+        {
+          eventName: charSetting.deleteEvent,
+          origin: `${o.charType}.${o.key}`,
+        },
+        {
+          eventName: propSetting.changeEvent,
+          origin: `${o.charType}.${o.key}`,
+        },
+      ]
+      : [],
+  };
 };
 
 type ValueModifier = {
-  operand: "+" | "-" | "*" | "/",
-  value: number,
-  priority?: number,
-}
+  operand: '+' | '-' | '*' | '/';
+  value: number;
+  priority?: number;
+};
 
 type StringModifier = {
-  operand: "prepend" | "append",
-  value: string,
-  priority?:number,
-}
+  operand: 'prepend' | 'append';
+  value: string;
+  priority?: number;
+};
 
-// EVENT SYSTEM
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+export const withoutEmptyArray = (arr: any[], key: string) => {
+  if (arr.length === 0) return {};
+  return { [key]: arr };
+};
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+export const withoutEmptyObject = (obj: any, key: string) => {
+  if (Object.keys(obj).length === 0) return {};
+  return { [key]: obj };
+};
 
-export const withoutEmptyArray = (arr:any[],key:string) => {
-  if(arr.length === 0) return {}
-  return { [key]: arr }
-}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const nanoidAlpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+// const nanoid = customAlphabet(nanoidAlpha,12)
+const nanoid = () => 'abcdef';
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export const generateID = () => nanoid();
 
-export const withoutEmptyObject = (obj:object,key:string) => {
-  if(Object.keys(obj).length === 0) return {}
-  return { [key]: obj }
-}
+export const testComparator = (
+  c: Comparator,
+  state: CharacterState,
+  context?: { subject: Characteristic },
+): boolean => {
+  const valueTest = (s: ComparatorValue): boolean => {
+    const derivedA = calcDerivedValue(s.a, state, context).value;
+    const derivedB = calcDerivedValue(s.b, state, context).value;
+    switch (s.comparator) {
+      case '=':
+        return derivedA === derivedB;
+      case '>':
+        return derivedA > derivedB;
+      case '<':
+        return derivedA < derivedB;
+      case '!=':
+        return derivedA !== derivedB;
+      default:
+        throw new Error(`Unrecognized Value Comparator ${s.comparator}`);
+    }
+  };
 
-const nanoidAlpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-const nanoid = customAlphabet(nanoidAlpha,12)
-export const generateID = () => nanoid()
+  const stringTest = (s: ComparatorString): boolean => {
+    const a = calcDerivedString(s.a, state, context).string;
+    const b = calcDerivedString(s.b, state, context).string;
+    switch (s.comparator) {
+      case 'regex':
+        return RegExp(b).test(a);
+      case 'includes':
+        return a.includes(b);
+      case 'is':
+        return a === b;
+      default:
+        return false;
+    }
+  };
+
+  const logicalTest = (s: ComparatorLogic): boolean => {
+    switch (s.operator) {
+      case 'OR':
+        return s.selectors.reduce(
+          (result, filter) => (result === false ? testComparator(filter, state, context) : true),
+          false,
+        );
+      case 'AND':
+        return s.selectors.reduce(
+          (result, filter) => (result === true ? testComparator(filter, state, context) : false),
+          true,
+        );
+      case 'NOR':
+        return !s.selectors.reduce(
+          (result, filter) => (result === false ? testComparator(filter, state, context) : true),
+          false,
+        );
+      default:
+        throw new Error(`Unrecognized Logical operator: ${s.operator}`);
+    }
+  };
+
+  switch (c.type) {
+    case 'string':
+      return stringTest(c);
+    case 'value':
+      return valueTest(c);
+    case 'logic':
+      return logicalTest(c);
+    case 'auto':
+      return c.result;
+    default:
+      throw new Error(`Unrecognized Filter Type: ${c.type}`);
+  }
+};
