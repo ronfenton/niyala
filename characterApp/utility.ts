@@ -73,37 +73,46 @@ export const calcModdedValue = (
   if (modKeys.length === 0) {
     return { value: v, triggers: [] };
   }
-  try {
-    const res = modKeys
-      .map((key) => state.character.objectMods[key].effect as ObjectModifierValue)
-      .sort(sortArithmeticMods)
-      .reduce(
-        (acc, mod) => {
-          const modVal = calcDerivedValue(mod.value, state, { subject });
-          return {
-            value: arithmetic(mod.operand, acc.value, modVal.value),
-            triggers: [...acc.triggers, ...modVal.updateTriggers],
-          };
-        },
-        { value: v, triggers: [] } as {
-          value: number;
-          triggers: CSTriggerRecord[];
-        },
-      );
-    return {
-      value: {
-        base: v,
-        mods: modKeys,
-        modded: res.value,
+  const res = modKeys
+    .map((key) => state.character.objectMods[key].effect as ObjectModifierValue)
+    .sort(sortArithmeticMods)
+    .reduce(
+      (acc, mod) => {
+        const modVal = calcDerivedValue(mod.value, state, { subject });
+        return {
+          value: arithmetic(mod.operand, acc.value, modVal.value),
+          triggers: [...acc.triggers, ...modVal.updateTriggers],
+        };
       },
-      triggers: res.triggers,
-    };
-  } catch (e) {
-    console.error(e);
-    console.error(JSON.stringify(state.character.objectModifierRegister, null, 4));
-    console.error(JSON.stringify(state, null, 4));
-    return { value: v, triggers: [] };
-  }
+      { value: v, triggers: [] } as {
+        value: number;
+        triggers: CSTriggerRecord[];
+      },
+    );
+  return {
+    value: {
+      base: v,
+      mods: modKeys,
+      modded: res.value,
+    },
+    triggers: [
+      ...res.triggers,
+      ...modKeys.reduce(
+        (acc, modKey) => [
+          ...acc,
+          {
+            eventName: enums.CSEventNames.MODIFIER_EFFECT_CHANGED,
+            origin: modKey,
+          },
+          {
+            eventName: enums.CSEventNames.MODIFIER_DELETED,
+            origin: modKey,
+          },
+        ],
+        [] as CSTriggerRecord[],
+      ),
+    ],
+  };
 };
 
 export const calcModdedString = (

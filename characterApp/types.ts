@@ -189,10 +189,20 @@ export type Attribute = Characteristic & Levelled & CostedObject & {
   abbreviation?: string
 }
 
+export type Statistic = Characteristic & {
+  valueStruct: DerivedValue,
+  value: number,
+}
+
 export type Skill = Characteristic & Levelled & {
   bases: DerivedValue[],
-  selBase: number,
-  difficulty: number
+  lvlRel: ModdableValue,
+  defBase: DerivedValue,
+  difficulty: number,
+  specialisation?: {
+    name: string,
+    description: string,
+  }
 }
 
 export type ObjectModifierMap = {
