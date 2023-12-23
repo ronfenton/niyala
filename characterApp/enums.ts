@@ -14,11 +14,13 @@ export enum CSEventNames {
   ATTRIBUTE_DELETED = 'AttributeDeleted',
   MODIFIER_CREATED = 'ModifierCreated',
   MODIFIER_DELETED = 'ModifierDeleted',
-  MODIFIER_EFFECT_CHANGED = 'ModifierEffectChanged',
   MODIFIER_SUBJECTS_CHANGED = 'ModifierSubjectsChanged',
-  MODIFIER_ENABLED = 'ModifierEnabled',
-  MODIFIER_DISABLED = 'ModifierDisabled',
   MODIFIER_FILTER_CHANGED = 'ModifierFilterChanged',
+  SKILL_CREATED = 'SkillCreated',
+  SKILL_DELETED = 'SkillDeleted',
+  SKILL_LEVEL_CHANGED = 'SkillLevelChanged',
+  SKILL_BASE_CHANGED = 'SkillBaseChanged',
+  SKILL_POINTS_CHANGED = 'SkillPointsChanged',
 }
 
 export enum CostModType {
@@ -84,6 +86,7 @@ export enum CharacteristicType {
   TESTING = 'testing',
   ATTRIBUTES = 'attributes',
   OBJECT_MODIFIERS = 'objectMods',
+  SKILLS = 'skills',
 }
 
 export enum ModifierEffectType {

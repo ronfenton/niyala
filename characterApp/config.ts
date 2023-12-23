@@ -1,4 +1,4 @@
-import { Attribute, CharacteristicSettings } from './types';
+import { Attribute, CharacteristicSettings, Skill } from './types';
 import * as enums from './enums';
 
 export const characteristicSettings: CharacteristicSettings = {
@@ -25,4 +25,32 @@ export const characteristicSettings: CharacteristicSettings = {
       },
     },
   },
+  [enums.CharacteristicType.SKILLS]: {
+    createEvent: enums.CSEventNames.SKILL_CREATED,
+    deleteEvent: enums.CSEventNames.SKILL_DELETED,
+    moddableValues: {
+      lvl: {
+        type: 'value',
+        funcID: 'updateLevel',
+        displayName: 'Relative Level'
+      },
+      lvlSkill: {
+        type: 'value',
+        funcID: 'updateLevel',
+        displayName: 'Skill Level',
+      }
+    },
+    selectableValues: {
+      lvl: {
+        type: 'moddableValue',
+        changeEvent: enums.CSEventNames.SKILL_LEVEL_CHANGED,
+        stringFunc: (obj: Skill): string => obj.name
+      },
+      points: {
+        type: 'moddableValue',
+        changeEvent: enums.CSEventNames.SKILL_POINTS_CHANGED,
+        stringFunc: (obj: Skill): string => `${obj.name} CP`
+      },
+    }
+  }
 };

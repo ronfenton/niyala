@@ -174,7 +174,6 @@ export type Identity = {
 export type Levelled = {
   base: DerivedValue,
   lvlBase: number,
-  lvlPurchase: number,
   lvlMod: number,
   lvl: ModdableValue,
 }
@@ -194,14 +193,19 @@ export type Statistic = Characteristic & {
   value: number,
 }
 
-export type Skill = Characteristic & Levelled & {
-  bases: DerivedValue[],
+export type Skill = Characteristic & Levelled & CostedObject & {
   lvlRel: ModdableValue,
   defBase: DerivedValue,
+  lvlSkill: ModdableValue,
   difficulty: number,
   specialisation?: {
     name: string,
     description: string,
+  },
+  defaults: {
+    attribute?: number,
+    skills?: {name: string, specialisation?: string, offset: number}[]
+    current: {name: string,   offset: number}
   }
 }
 
@@ -210,7 +214,7 @@ export type ObjectModifierMap = {
     [objectKey:ObjectPath]: {
       [targetKey:string]: ObjectPath[],
     }
-  }
+  } 
 }
 
 export type InventoryItem = Characteristic & {

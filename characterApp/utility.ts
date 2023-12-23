@@ -101,10 +101,6 @@ export const calcModdedValue = (
         (acc, modKey) => [
           ...acc,
           {
-            eventName: enums.CSEventNames.MODIFIER_EFFECT_CHANGED,
-            origin: modKey,
-          },
-          {
             eventName: enums.CSEventNames.MODIFIER_DELETED,
             origin: modKey,
           },
