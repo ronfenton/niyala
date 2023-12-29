@@ -71,7 +71,7 @@ export const updateLevel = (key: string): CSAction => (env: Environment, state: 
           ? [
             {
               name: CSEventNames.ATTRIBUTE_LEVEL_CHANGED,
-              origin: `${CharacteristicType.ATTRIBUTES}.${key}`,
+              origin: key,
               data: calced.a.lvl,
             },
           ]
@@ -137,7 +137,7 @@ export const insert = (a: Attribute, opts: InsertOptions): CSAction => (env: Env
     events: [
       {
         name: CSEventNames.ATTRIBUTE_CREATED,
-        origin: `${CharacteristicType.ATTRIBUTES}.${defaultKey}`,
+        origin: defaultKey,
       },
     ],
   };
@@ -148,6 +148,6 @@ export const AttributeEventsHandler = {
     env: Environment,
     state: CharacterState,
     key: string,
-    event: CSEvent,
+    _event: CSEvent,
   ) => updateLevel(key)(env, state),
 };

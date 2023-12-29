@@ -244,7 +244,7 @@ describe('When creating and inserting a modifier,', () => {
       expect(
         propogated.character[enums.CharacteristicType.ATTRIBUTES].Basic_Speed
           .lvl,
-      ).toStrictEqual(16);
+      ).toStrictEqual(17);
     });
   });
   describe('with a simple derived value comparator filter,', () => {

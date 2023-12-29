@@ -135,19 +135,19 @@ describe('CalculateBase', () => {
         updateTriggers: [
           {
             eventName: enums.CSEventNames.ATTRIBUTE_DELETED,
-            origin: 'attributes.Dexterity',
+            origin: 'Dexterity',
           },
           {
             eventName: enums.CSEventNames.ATTRIBUTE_LEVEL_CHANGED,
-            origin: 'attributes.Dexterity',
+            origin: 'Dexterity',
           },
           {
             eventName: enums.CSEventNames.ATTRIBUTE_DELETED,
-            origin: 'attributes.Health',
+            origin: 'Health',
           },
           {
             eventName: enums.CSEventNames.ATTRIBUTE_LEVEL_CHANGED,
-            origin: 'attributes.Health',
+            origin: 'Health',
           },
         ],
         text: '( ( DX + HT ) / 4 )',

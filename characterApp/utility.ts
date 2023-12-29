@@ -321,17 +321,17 @@ const getDerivedStringCharacteristicEvents = (
         ...fb.externalEvents,
         {
           eventName: charTypeSettings.createEvent,
-          origin: `${b.charType}.${b.key}`,
+          origin: b.key,
         },
       ],
     };
   }
   return {
     subjectEvents: [
-      { eventName: propSettings.changeEvent, origin: `${b.charType}.${b.key}` },
+      { eventName: propSettings.changeEvent, origin: b.key },
       {
         eventName: charTypeSettings.deleteEvent,
-        origin: `${b.charType}.${b.key}`,
+        origin: b.key,
       },
     ],
     externalEvents: [],
@@ -393,17 +393,17 @@ const getDerivedValueCharacteristicEvents = (
         ...fb.externalEvents,
         {
           eventName: charTypeSettings.createEvent,
-          origin: `${b.charType}.${b.key}`,
+          origin: b.key,
         },
       ],
     };
   }
   return {
     subjectEvents: [
-      { eventName: propSettings.changeEvent, origin: `${b.charType}.${b.key}` },
+      { eventName: propSettings.changeEvent, origin: b.key },
       {
         eventName: charTypeSettings.deleteEvent,
-        origin: `${b.charType}.${b.key}`,
+        origin: b.key,
       },
     ],
     externalEvents: [],
@@ -526,7 +526,7 @@ const calcDerivedValueFromCharacteristic = (
           ? [
             {
               eventName: charSetting.createEvent,
-              origin: `${o.charType}.${o.key}`,
+              origin: o.key,
             },
           ]
           : []),
@@ -545,11 +545,11 @@ const calcDerivedValueFromCharacteristic = (
       ? [
         {
           eventName: charSetting.deleteEvent,
-          origin: `${o.charType}.${o.key}`,
+          origin: o.key,
         },
         {
           eventName: propSetting.changeEvent,
-          origin: `${o.charType}.${o.key}`,
+          origin: o.key,
         },
       ]
       : [],
@@ -591,7 +591,7 @@ const calcDerivedStringFromCharacteristic = (
           ? [
             {
               eventName: charSetting.createEvent,
-              origin: `${o.charType}.${o.key}`,
+              origin: o.key,
             },
           ]
           : []),
@@ -608,11 +608,11 @@ const calcDerivedStringFromCharacteristic = (
       ? [
         {
           eventName: charSetting.deleteEvent,
-          origin: `${o.charType}.${o.key}`,
+          origin: o.key,
         },
         {
           eventName: propSetting.changeEvent,
-          origin: `${o.charType}.${o.key}`,
+          origin: o.key,
         },
       ]
       : [],
