@@ -90,10 +90,10 @@ export const Article: CollectionConfig = {
               ? `\n> ${args.originalDoc.meta.description}` 
               : ""
             if(Object.keys(args.previousDoc).length == 0) {
-              channel.send(`*New Article:* ***${args.originalDoc.title}*** https://niyala.net/compendium/${args.originalDoc.slug}${description}`.trim())
+              channel.send(`*New Article:* **[${args.originalDoc.title}](https://niyala.net/compendium/${args.originalDoc.slug})**${description}`.trim())
               return;
             }
-            channel.send(`*Updated Article:* ***${args.originalDoc.title}*** https://niyala.net/compendium/${args.originalDoc.slug}${description}`.trim())
+            channel.send(`*Updated Article:* **[${args.originalDoc.title}](https://niyala.net/compendium/${args.originalDoc.slug})**${description}`.trim())
           }
         ]
       },

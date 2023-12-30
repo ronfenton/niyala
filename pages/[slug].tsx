@@ -19,7 +19,7 @@ const Page: React.FC<Props> = (props) => {
   const { page } = props;
 
   if (!page) {
-    return <NotFound />;
+    return (<NotFound />)
   }
 
   return (

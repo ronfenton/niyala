@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import { config as dotenv } from 'dotenv';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
+import { Socket } from 'socket.io-client';
 
 dotenv();
 
@@ -35,6 +36,7 @@ export const getGlobalIO = async () => {
     socket.on('message', (data) => {
       ioConsole.log(`Message received: ${data}`);
       socket.emit('message', `Message (${data}) received; send another?`);
+      socket.broadcast.to('messageRoom').emit('message', 'Other client sent '+data);
     });
   });
 
