@@ -1,6 +1,7 @@
-import { Client, REST, Routes, Events, GatewayIntentBits, Interaction, TextChannel } from 'discord.js';
+import { Client, REST, Routes, Events, GatewayIntentBits, Interaction, TextChannel, SlashCommandBuilder } from 'discord.js';
 import { config as dotenv } from 'dotenv';
 import { generate } from './pages/api/randomBackground';
+import { handleDiscordActions } from './characterApp/app';
 
 dotenv();
 
@@ -29,7 +30,7 @@ const logTime = ():string => {
 }
 
 export const discordConsole = {
-  log: (s:string) => console.log(`${logTime()} INFO (discord): ${s}`)
+  log: (s:string) => console.log(`${logTime()} \x1b[32mINFO\x1b[0m (\x1b[34mdiscord\x1b[0m): ${s}`)
 }
 
 export const sendMessage = async (channel:string,message:string) => {
@@ -44,7 +45,7 @@ const setupSlashCommands = async () => {
   try {
     discordConsole.log('Started refreshing application (/) commands.');
   
-    await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), { body: discordCommands });
+    await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), { body: [...discordCommands,...charsheetcommands] });
   
     discordConsole.log('Successfully reloaded application (/) commands.');
   } catch (error) {
@@ -57,6 +58,29 @@ const discordCommands = [
     description: "Generate a random background for a Megastructure B7 Resident",
   }
 ]
+const charsheetcommands = [
+  new SlashCommandBuilder()
+  .setName('debug')
+  .setDescription('debug commands for development')
+  .addSubcommand(subcommand => 
+    subcommand
+      .setName('list-memory')
+      .setDescription('lists all values currently in memory'))
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName('set')
+      .setDescription('sets a memory value')
+      .addStringOption(option =>
+        option
+          .setName('state')
+          .setDescription('which memory state to set')
+          .setRequired(true))
+      .addStringOption(option =>
+        option
+          .setName('value')
+          .setDescription('the value to set to the memory state')
+          .setRequired(true)))
+]
 
 const handleInteraction = async (i:Interaction) => {
   if (!i.isChatInputCommand()) { return; }
@@ -65,8 +89,11 @@ const handleInteraction = async (i:Interaction) => {
     case "random-background": 
       await i.reply(generate())
       break;
+    case 'debug': 
+      await handleDiscordActions(i);
+      break;
     default:
-      await i.reply('Unknown Command')
+      await i.reply(`Unhandled command: ${i.commandName}`)
       break;
   }
 }

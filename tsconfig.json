@@ -1,12 +1,8 @@
 {
   "compilerOptions": {
     "esModuleInterop": true,
-    "target": "es5",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "target": "es2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -14,7 +10,7 @@
     "noEmit": true,
     "incremental": true,
     "jsx": "preserve",
-    "module": "CommonJS",
+    "module": "commonjs",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true
@@ -27,9 +23,7 @@
     "**/*.tsx",
     "next.config.js"
   ],
-  "exclude": [
-    "node_modules"
-  ],
+  "exclude": ["node_modules"],
   "ts-node": {
     "transpileOnly": true,
     "swc": true
