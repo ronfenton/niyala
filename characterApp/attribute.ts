@@ -7,17 +7,19 @@ import type {
   Environment,
   InsertOptions,
   CSTriggerRecord,
+  CharacteristicDefinition,
 } from './types';
 import {
   calcDerivedValue,
   calcModdedValue,
   costMapPointsToLevel,
+  getCharacteristic,
   getModdedValue,
   getMods,
   stringToValidKey,
 } from './utility';
 import { CSEventNames, CharacteristicType } from './enums';
-import { UpdateRegistry } from './eventSystem';
+import { updateRegistry } from './eventSystem';
 
 const calculateLevel = (
   a: Attribute,
@@ -46,11 +48,8 @@ const calculateLevel = (
 };
 
 export const updateLevel = (key: string): CSAction => (env: Environment, state: CharacterState) => {
-  const a = _.get(key)(state.character[CharacteristicType.ATTRIBUTES]);
-  if (a === undefined) {
-    throw new Error(`Attribute ${key} not found`);
-  }
   const { character, registry } = state;
+  const a = getCharacteristic<Attribute>(key,CharacteristicType.ATTRIBUTES,character)
   const calced = calculateLevel(a, key, env, state);
   return {
     state: {
@@ -58,7 +57,7 @@ export const updateLevel = (key: string): CSAction => (env: Environment, state: 
         [CharacteristicType.ATTRIBUTES, key],
         calced.a,
       )(character),
-      registry: UpdateRegistry(
+      registry: updateRegistry(
         registry,
         calced.baseListeners,
         'updateLevel',
@@ -79,7 +78,30 @@ export const updateLevel = (key: string): CSAction => (env: Environment, state: 
   };
 };
 
-export const insert = (a: Attribute, opts: InsertOptions): CSAction => (env: Environment, state: CharacterState) => {
+export const insert = (k:string, a:Attribute): CSAction => (env:Environment, state: CharacterState) => {
+  const { character, registry } = state;
+  const calced = calculateLevel(a, k, env, state);
+  return {
+    state: {
+      character: _.set(`attributes.${k}`, calced.a)(character),
+      registry: updateRegistry(
+        registry,
+        calced.baseListeners,
+        'updateLevel',
+        `attributes.${k}`,
+        CharacteristicType.ATTRIBUTES,
+      ),
+    },
+    events: [
+      {
+        name: CSEventNames.ATTRIBUTE_CREATED,
+        origin: k,
+      },
+    ],
+  };
+}
+
+export const insertXX = (a: Attribute, opts: InsertOptions): CSAction => (env: Environment, state: CharacterState) => {
   const { character, registry } = state;
   const defaultKey = stringToValidKey(a.name);
   if (character.attributes[defaultKey] !== undefined) {
@@ -100,7 +122,7 @@ export const insert = (a: Attribute, opts: InsertOptions): CSAction => (env: Env
         return {
           state: {
             character: _.set(`attributes.${defaultKey}`, calced.a)(character),
-            registry: UpdateRegistry(
+            registry: updateRegistry(
               registry,
               calced.baseListeners,
               'updateLevel',
@@ -126,7 +148,7 @@ export const insert = (a: Attribute, opts: InsertOptions): CSAction => (env: Env
   return {
     state: {
       character: _.set(`attributes.${defaultKey}`, calced.a)(character),
-      registry: UpdateRegistry(
+      registry: updateRegistry(
         registry,
         calced.baseListeners,
         'updateLevel',
@@ -143,7 +165,7 @@ export const insert = (a: Attribute, opts: InsertOptions): CSAction => (env: Env
   };
 };
 
-export const AttributeEventsHandler = {
+export const attributeEventsHandler = {
   updateLevel: (
     env: Environment,
     state: CharacterState,
@@ -151,3 +173,32 @@ export const AttributeEventsHandler = {
     _event: CSEvent,
   ) => updateLevel(key)(env, state),
 };
+
+export const definition: CharacteristicDefinition = {
+  key: CharacteristicType.ATTRIBUTES,
+  functions: {
+    create: insert,
+    generateKey: (o:Attribute) => o.name,
+  },
+  createEvent: CSEventNames.ATTRIBUTE_CREATED,
+  deleteEvent: CSEventNames.ATTRIBUTE_DELETED,
+  moddableValues: {
+    lvl: {
+      type: 'value',
+      funcID: 'updateLevel',
+      displayName: 'Level',
+    },
+  },
+  selectableValues: {
+    lvl: {
+      type: 'moddableValue',
+      changeEvent: CSEventNames.ATTRIBUTE_LEVEL_CHANGED,
+      stringFunc: (obj: Attribute):string => obj.abbreviation || obj.name,
+    },
+    name: {
+      type: 'string',
+      changeEvent: CSEventNames.ATTRIBUTE_NAME_CHANGED,
+      stringFunc: (obj: Attribute):string => obj.name,
+    },
+  },
+}

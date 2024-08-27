@@ -20,9 +20,10 @@ import {
   ComparatorString,
   ComparatorLogic,
   ObjectModifierValue,
+  Character,
+  Environment,
 } from './types';
 import * as enums from './enums';
-import { characteristicSettings } from './config';
 // import { customAlphabet } from "nanoid";
 
 // GENERIC FUNCTIONS
@@ -111,19 +112,21 @@ export const calcModdedValue = (
   };
 };
 
-export const calcModdedString = (
-  s: string,
-  mods: StringModifier[],
-): ModdableString => {
-  if (mods.length === 0) {
-    return s;
-  }
-  return {
-    base: s,
-    mods,
-    modded: mods.reduce((acc, m) => acc + m, s),
-  };
-};
+// export const calcModdedString = (
+  // s: string,
+  // mods: StringModifier[],
+// ): ModdableString => {
+  // if (mods.length === 0) {
+    // return s;
+  // }
+  // return {
+    // base: s,
+    // mods,
+    // modded: mods.reduce((acc, m) => acc + m, s),
+  // };
+// };
+
+export const calcModdedString = (s,_mods):string => s
 
 export const getModdedValue = (v: ModdableValue): number => {
   if (typeof v === 'number') {
@@ -244,22 +247,23 @@ export const calcDerivedString = (
 
 export const getComparatorEvents = (
   c: Comparator,
+  env: Environment,
   state: CharacterState,
 ): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
   switch (c.type) {
     case 'auto':
       return { subjectEvents: [], externalEvents: [] };
     case 'string': {
-      const a = getDerivedStringEvents(c.a, state);
-      const b = getDerivedStringEvents(c.b, state);
+      const a = getDerivedStringEvents(c.a, env, state);
+      const b = getDerivedStringEvents(c.b, env, state);
       return {
         subjectEvents: [...a.subjectEvents, ...b.subjectEvents],
         externalEvents: [...a.externalEvents, ...b.externalEvents],
       };
     }
     case 'value': {
-      const a = getDerivedValueEvents(c.a, state);
-      const b = getDerivedValueEvents(c.b, state);
+      const a = getDerivedValueEvents(c.a, env, state);
+      const b = getDerivedValueEvents(c.b, env, state);
       return {
         subjectEvents: [...a.subjectEvents, ...b.subjectEvents],
         externalEvents: [...a.externalEvents, ...b.externalEvents],
@@ -268,7 +272,7 @@ export const getComparatorEvents = (
     case 'logic': {
       return c.selectors.reduce(
         (acc, sel) => {
-          const res = getComparatorEvents(sel, state);
+          const res = getComparatorEvents(sel, env, state);
           return {
             subjectEvents: [...acc.subjectEvents, ...res.subjectEvents],
             externalEvents: [...acc.externalEvents, ...res.externalEvents],
@@ -284,6 +288,7 @@ export const getComparatorEvents = (
 
 export const getDerivedStringEvents = (
   d: DerivedString,
+  env: Environment,
   state: CharacterState,
 ): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
   if (typeof d === 'string') {
@@ -293,7 +298,7 @@ export const getDerivedStringEvents = (
     case enums.DerivedStringType.STRING:
       return { subjectEvents: [], externalEvents: [] };
     case enums.DerivedStringType.CHARACTERISTIC:
-      return getDerivedStringCharacteristicEvents(d, state);
+      return getDerivedStringCharacteristicEvents(d, env, state);
     default:
       throw new Error('unrecognized type');
   }
@@ -301,9 +306,10 @@ export const getDerivedStringEvents = (
 
 const getDerivedStringCharacteristicEvents = (
   b: DerivedStringCharacteristic,
+  env: Environment,
   state: CharacterState,
 ): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
-  const charTypeSettings = characteristicSettings[b.charType];
+  const charTypeSettings = env.ruleset.characteristics[b.charType];
   const propSettings = charTypeSettings.selectableValues?.[b.property];
   if (b.key === '__subject') {
     if (propSettings === undefined) {
@@ -314,7 +320,7 @@ const getDerivedStringCharacteristicEvents = (
     }
   }
   if (state.character[b.charType][b.key] === undefined) {
-    const fb = getDerivedStringEvents(b.fallback, state);
+    const fb = getDerivedStringEvents(b.fallback, env, state);
     return {
       subjectEvents: [...fb.subjectEvents],
       externalEvents: [
@@ -340,6 +346,7 @@ const getDerivedStringCharacteristicEvents = (
 
 export const getDerivedValueEvents = (
   b: DerivedValue,
+  env: Environment,
   state: CharacterState,
 ): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
   if (typeof b === 'number') {
@@ -349,9 +356,9 @@ export const getDerivedValueEvents = (
     case enums.DerivedValueType.VALUE:
       return { subjectEvents: [], externalEvents: [] };
     case enums.DerivedValueType.CHARACTERISTIC:
-      return getDerivedValueCharacteristicEvents(b, state);
+      return getDerivedValueCharacteristicEvents(b, env, state);
     case enums.DerivedValueType.BRACKET:
-      return getDerivedValueBracketEvents(b, state);
+      return getDerivedValueBracketEvents(b, env, state);
     default:
       throw new Error('unrecognized type');
   }
@@ -359,10 +366,11 @@ export const getDerivedValueEvents = (
 
 const getDerivedValueBracketEvents = (
   b: DerivedValueBracket,
+  env: Environment,
   state: CharacterState,
 ): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => b.values.reduce(
   (acc, val) => {
-    const evs = getDerivedValueEvents(val, state);
+    const evs = getDerivedValueEvents(val, env, state);
     return {
       subjectEvents: [...acc.subjectEvents, ...evs.subjectEvents],
       externalEvents: [...acc.externalEvents, ...evs.externalEvents],
@@ -373,9 +381,10 @@ const getDerivedValueBracketEvents = (
 
 const getDerivedValueCharacteristicEvents = (
   b: DerivedValueCharacteristic,
+  env: Environment,
   state: CharacterState,
 ): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
-  const charTypeSettings = characteristicSettings[b.charType];
+  const charTypeSettings = env.ruleset.characteristics[b.charType];
   const propSettings = charTypeSettings.selectableValues?.[b.property];
   if (b.key === '__subject') {
     if (propSettings === undefined) {
@@ -386,7 +395,7 @@ const getDerivedValueCharacteristicEvents = (
     }
   }
   if (state.character[b.charType][b.key] === undefined) {
-    const fb = getDerivedValueEvents(b.fallback, state);
+    const fb = getDerivedValueEvents(b.fallback, env, state);
     return {
       subjectEvents: [...fb.subjectEvents],
       externalEvents: [
@@ -413,6 +422,7 @@ const getDerivedValueCharacteristicEvents = (
 // BASE FUNCTIONS
 export const calcDerivedValue = (
   b: DerivedValue,
+  env: Environment,
   state: CharacterState,
   context?: { parent?: string; subject?: Characteristic },
 ): DerivedValueResult => {
@@ -429,7 +439,7 @@ export const calcDerivedValue = (
     case enums.DerivedValueType.BRACKET:
       return calcBracket(b, state, context);
     case enums.DerivedValueType.CHARACTERISTIC:
-      return calcDerivedValueFromCharacteristic(b, state, context);
+      return calcDerivedValueFromCharacteristic(b, env, state, context);
     default:
       throw new Error(`Calculating base - invalid base: ${b}`);
   }
@@ -493,10 +503,11 @@ const calcBracket = (
 
 const calcDerivedValueFromCharacteristic = (
   o: DerivedValueCharacteristic,
+  env: Environment,
   state: CharacterState,
   context?: { subject?: Characteristic },
 ): DerivedValueResult => {
-  const charSetting = characteristicSettings[o.charType];
+  const charSetting = env.ruleset.characteristics[o.charType];
   const propSetting = charSetting.selectableValues[o.property];
   if (propSetting === undefined) {
     throw new Error(`${o.property} is not retrievable value on ${o.charType}`);
@@ -619,17 +630,21 @@ const calcDerivedStringFromCharacteristic = (
   };
 };
 
-type ValueModifier = {
-  operand: '+' | '-' | '*' | '/';
-  value: number;
-  priority?: number;
-};
-
-type StringModifier = {
-  operand: 'prepend' | 'append';
-  value: string;
-  priority?: number;
-};
+/**
+ * Retrieves the characteristic from a given Character State.
+ * Will error if object is not found.
+ * @param key The known key or uuid of the characteristic
+ * @param type The Characteristic Type
+ * @param state The Character State
+ * @returns 
+ */
+export const getCharacteristic = <T extends Characteristic>(key:string, type:enums.CharacteristicType, character: Character): T => {
+  const obj = character[type][key]
+  if(obj === undefined) {
+    throw new Error(`${type} (${key}) not found.`)
+  }
+  return obj;
+}
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
 export const withoutEmptyArray = (arr: any[], key: string) => {

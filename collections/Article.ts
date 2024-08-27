@@ -1,22 +1,28 @@
-import { CollectionAfterChangeHook, CollectionConfig } from 'payload/types';
-import { MediaType } from './Media';
+import { CollectionConfig } from 'payload/types';
 import formatSlug from '../utilities/formatSlug';
+import { Sidebar } from '../blocks/Sidebar/Config';
+import { Type as SidebarType } from '../blocks/Sidebar/Component';
 import { Image } from '../blocks/Image/Config';
 import { Type as ImageType } from '../blocks/Image/Component';
-import { Type as CallToActionType } from '../blocks/CallToAction/Component';
 import { Content } from '../blocks/Content/Config';
 import { Type as ContentType } from '../blocks/Content/Component';
+import { MarkdownContent } from '../blocks/MarkdownContent/Config';
+import { Type as MarkdownContentType } from '../blocks/MarkdownContent/Component';
 import { getGlobalDiscord } from '../discord';
 import { TextChannel } from 'discord.js';
 
+export type TSection = {
+  type: 'OOC' | 'IC',
+  layout: Layout[]
+}
 
-export type Layout = CallToActionType | ContentType | ImageType
+export type Layout = ContentType | ImageType | SidebarType | MarkdownContentType
 
 export type Type = {
   title: string
   slug: string
-  image?: MediaType
-  layout: Layout[]
+  hidden: boolean,
+  sections: TSection[]
   meta: {
     title?: string
     description?: string
@@ -28,6 +34,7 @@ export const Article: CollectionConfig = {
   slug: 'articles',
   admin: {
     useAsTitle: 'title',
+    group: 'Compendium',
   },
   access: {
     read: (): boolean => true, // Everyone can read Pages
@@ -40,14 +47,38 @@ export const Article: CollectionConfig = {
       required: true,
     },
     {
-      name: 'layout',
-      label: 'Page Layout',
-      type: 'blocks',
+      name: 'hidden',
+      label: 'Hidden',
+      type: 'checkbox',
+      defaultValue: false,
+      required: true,
+    },
+    {
+      name: 'sections',
+      type: 'array',
+      label: 'Sections',
       minRows: 1,
-      blocks: [
-        Content,
-        Image,
-      ],
+      fields: [
+        {
+          name: 'type',
+          label: 'Section Type',
+          type: 'select',
+          options: ['OOC','IC'],
+          required: true,
+          defaultValue: 'OOC',
+        },
+        {
+          name: 'layout',
+          label: 'Layout',
+          type: 'blocks',
+          blocks: [
+            Content,
+            Image,
+            Sidebar,
+            MarkdownContent,
+          ],
+        }
+      ]
     },
     {
       name: 'meta',
@@ -75,6 +106,7 @@ export const Article: CollectionConfig = {
       name: 'slug',
       label: 'Article Slug',
       type: 'text',
+      unique: true,
       admin: {
         position: 'sidebar',
       },
@@ -82,23 +114,29 @@ export const Article: CollectionConfig = {
         beforeValidate: [
           formatSlug('title'),
         ],
-        afterChange: [
-          async (args) => {
-            const c = await getGlobalDiscord()
-            const channel = c.channels.cache.get('1120775031564275804') as TextChannel
-            const description = args.originalDoc.meta?.description 
-              ? `\n> ${args.originalDoc.meta.description}` 
-              : ""
-            if(Object.keys(args.previousDoc).length == 0) {
-              channel.send(`*New Article:* **[${args.originalDoc.title}](https://niyala.net/compendium/${args.originalDoc.slug})**${description}`.trim())
-              return;
-            }
-            channel.send(`*Updated Article:* **[${args.originalDoc.title}](https://niyala.net/compendium/${args.originalDoc.slug})**${description}`.trim())
-          }
-        ]
       },
     },
   ],
+  hooks: {
+    afterChange: [
+      async (args) => {
+        if (args.doc.hidden === true) {
+          return args.doc;
+        }
+        const c = await getGlobalDiscord()
+        const channel = c.channels.cache.get(process.env.DISCORD_NEWS_CHANNEL_ID) as TextChannel
+        const description = args.doc.meta?.description 
+          ? `\n> ${args.doc.meta.description}` 
+          : ""
+        if(Object.keys(args.previousDoc).length == 0) {
+          channel.send(`*New Article:* **[${args.doc.title}](https://niyala.net/compendium/${args.doc.slug})**${description}`.trim())
+          return;
+        }
+        channel.send(`*Updated Article:* **[${args.doc.title}](https://niyala.net/compendium/${args.doc.slug})**${description}`.trim())
+        return args.doc
+      }
+    ]
+  }
 };
 
 export default Article;

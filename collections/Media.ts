@@ -20,6 +20,9 @@ export type MediaType = {
 }
 
 const Media: CollectionConfig = {
+  admin: {
+    group: 'Main',
+  },
   slug: 'media',
   access: {
     read: (): boolean => true, // Everyone can read Media

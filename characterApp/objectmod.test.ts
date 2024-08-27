@@ -14,7 +14,7 @@ import {
 import { DerivedValueType, CharacteristicType } from './enums';
 import * as enums from './enums';
 import { performAction } from './character';
-import { AttributeEventsHandler } from './attribute';
+import { attributeEventsHandler } from './attribute';
 
 const demoCharState: CharacterState = {
   character: fixtures.character({
@@ -169,7 +169,7 @@ describe('When creating and inserting a modifier,', () => {
         keyOverride: 'test_modifier',
       }),
       {
-        attributes: AttributeEventsHandler,
+        attributes: attributeEventsHandler,
         objectMods: ObjectModsEventHandler,
       },
     );
@@ -233,7 +233,7 @@ describe('When creating and inserting a modifier,', () => {
         keyOverride: 'test_modifier',
       }),
       {
-        attributes: AttributeEventsHandler,
+        attributes: attributeEventsHandler,
         objectMods: ObjectModsEventHandler,
       },
     );
@@ -305,7 +305,7 @@ describe('When creating and inserting a modifier,', () => {
         keyOverride: 'test_modifier',
       }),
       {
-        attributes: AttributeEventsHandler,
+        attributes: attributeEventsHandler,
         objectMods: ObjectModsEventHandler,
       },
     );
@@ -399,7 +399,7 @@ describe('When creating and inserting a modifier,', () => {
         keyOverride: 'test_modifier',
       }),
       {
-        attributes: AttributeEventsHandler,
+        attributes: attributeEventsHandler,
         objectMods: ObjectModsEventHandler,
       },
     );

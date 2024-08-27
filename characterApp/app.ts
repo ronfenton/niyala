@@ -1,7 +1,16 @@
 import { Interaction } from 'discord.js';
 import { Server, Socket } from 'socket.io';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
-import { getGlobalIO } from '../socketio'
+import { getGlobalIO } from '../socketio';
+import { Attribute, CSAction, CharacterState, Environment, Prompter, PrompterSettings } from './types';
+import { performAction } from './character';
+import * as AttrFuncs from './attribute';
+import * as SkillFuncs from './skill';
+import * as enums from './enums'
+import * as fixtures from './fixtures'
+import handler from '../pages/api/randomBackground';
+
+const someMockDB = {}
 
 type testState = {
   lastEdit: Date;
@@ -10,50 +19,155 @@ type testState = {
 
 const states = new Map<string, testState>();
 
-const discordIOSetup = (
-  discordClient: any
-) => {
-
+const saveToLocal = () => {
+  // purely for debugging: 
+  const randomChance = Math.random();
+  if(randomChance > 0.9) {
+    throw new Error('10% file IO fail emulation')
+  }
+  return
 }
 
-const handleDiscordActions = async (i:Interaction) => {
-  if (!i.isChatInputCommand()) { return; }
-  if(i.commandName !== 'debug') { return ;}
-  switch(i.options.getSubcommand(true)){
-    case 'list-memory': await i.reply(states.size === 0 ? 'Nothing in memory' : [...states.entries()].map(([k,v]) => `**${k}:** ${v.stringVal}`).join('\n')); break;
-    case 'set': {
-      const state = i.options.getString('state')
-      const value = i.options.getString('value')
-      states.set(state,{lastEdit:new Date(),stringVal:value})
-      const server = await getGlobalIO()
-      server.to(state).emit('state changed', { stateKey: state, stringVal: value })
-      i.reply('State changed.')
-      return;
-    }
-    default: await i.reply('holding');
+const saveToMongo = () => {
+  const randomChance = Math.random();
+  if(randomChance > 0.9) {
+    throw new Error('10% file IO fail emulation')
+  }
+  return
+}
+
+const dbTimeoutFunc = () => {
+  try {
+    saveToMongo();
+  } catch (e) {
+    console.error(e.message)
   }
 }
 
-const socketIOSetup = (
-  socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>,
-) => {
-  socket.on('open state', (stateKey: string) => {
-    console.log(`${socket.id} opened ${stateKey}`)
-    socket.join(stateKey);
-    if (states.get(stateKey) === undefined) {
-      states.set(stateKey, { lastEdit: new Date(), stringVal: 'New Document' });
-    }
-    socket.emit('state opened', { stateKey, stringVal: states.get(stateKey).stringVal })
-  });
-  socket.on('set state', (data:{stateKey:string,stringVal:string}) => {
-    console.log(`${socket.id} set ${data.stateKey} to ${data.stringVal}`)
-    states.set(data.stateKey,{stringVal:data.stringVal,lastEdit: new Date()})
-    socket.broadcast.to(data.stateKey).emit('state changed', data)
-  })
-  socket.on('close state', (stateKey: string) => {
-    console.log(`${socket.id} closed ${stateKey}`)
-    socket.leave(stateKey)
-  })
-};
+const ioTimeoutFunc = () => {
+  try {
+    saveToLocal();
+  } catch (e) {
+    console.error(e.message)
+  }
+}
 
-export { socketIOSetup, handleDiscordActions }
+const appState: {
+  handlers: Set<((charID: string, data: {event:string, payload:any}) => void)>,
+  characters: Map<string,{ state: CharacterState, lastEdit: Date}>,
+  rulesets: Map<string, { ruleset: any, lastEdit: Date}>,
+  lastFileBackup: Date,
+  lastDBBackup: Date,
+  debugLogger?: (x:string) => void,
+  dbInterval:NodeJS.Timeout,
+  ioInterval:NodeJS.Timeout,
+} = {
+  handlers: new Set<((charID: string, data: {event:string, payload:any}) => void)>(),
+  characters: new Map<string,{ state: CharacterState, lastEdit: Date}>(),
+  rulesets: new Map<string, { ruleset: any, lastEdit: Date}>(),
+  lastFileBackup: new Date(),
+  lastDBBackup: new Date(),
+  debugLogger: (x) => console.debug(x),
+  dbInterval: setInterval(dbTimeoutFunc,60000), 
+  ioInterval: setInterval(ioTimeoutFunc,10000), 
+} 
+
+export const printDebug = () => {
+  const {characters,lastFileBackup,lastDBBackup} = appState
+  const mapped = [...characters.entries()].reduce( (acc, c) => ( 
+    acc[c[0]] = c[1], 
+    acc), {})
+  return JSON.stringify({
+    characters: mapped,
+    lastFileBackup, lastDBBackup
+  }, null, 4)
+}
+
+
+
+const servEnv:Environment = {
+  logger: {
+    debug: function (x: string): void {
+      throw new Error('Function not implemented.');
+    },
+    log: function (x: string): void {
+      throw new Error('Function not implemented.');
+    },
+    warn: function (x: string): void {
+      throw new Error('Function not implemented.');
+    },
+    error: function (x: string): void {
+      throw new Error('Function not implemented.');
+    },
+    fatal: function (x: string): void {
+      throw new Error('Function not implemented.');
+    }
+  },
+  prompter: {
+    bool: function (context: PrompterSettings): boolean {
+      throw new Error('Function not implemented.');
+    },
+    number: function (context: PrompterSettings): number {
+      throw new Error('Function not implemented.');
+    },
+    text: function (context: PrompterSettings): string {
+      throw new Error('Function not implemented.');
+    },
+    select: function (context: PrompterSettings, options: string[], defaultSelect: string): string {
+      throw new Error('Function not implemented.');
+    }
+  },
+  ruleset: undefined
+}
+
+/**
+ * The primary action performance script for the Character Application.
+ * @param charID Character ID to be manipulated.
+ * @param userID User ID requesting to perform the action.
+ * @param prompter Prompter to be provided by the calling interface to permit question/answers.
+ * @param action Action to be performed on the character
+ * @returns null
+ */
+export const handleAction = (charID: string, userID: string, prompter: Prompter, actionID: string, actionPayload: any):string => {
+  try {
+    if(actionID === 'create') {
+      const newChar = fixtures.character({})
+      appState.characters.set(charID,{state:{character:newChar, registry:[]},lastEdit: new Date()})
+      appState.handlers.forEach((handler) => handler(charID, {event: 'Character Created', payload:{ id: charID }}))
+      return `Character ${charID} created successfully`
+    }
+    const char = appState.characters.get(charID)
+    const action = parseAction(actionID, actionPayload)
+    // TODO: add some permission checks here.
+    if(false) {
+      appState.handlers.forEach(handler => handler(charID, {event: 'Disallowed Action', payload: {userID}}))
+      return;
+    }
+    appState.debugLogger(`${charID}: ${action.str}`)
+    const result = performAction({...servEnv,prompter},char.state,action.fn,{})
+    appState.characters.set(charID,{state:result,lastEdit: new Date()})
+    appState.handlers.forEach((handler) => handler(charID, {event: 'State Change', payload: result}))
+    return action.str + ': successful'
+  } catch (e) {
+    console.error(e.message)
+    return `${actionID}: unsuccessful.\n\`${e.message}\``
+  }
+}
+
+export const createCharacter = (id?:string) => {
+  appState.characters.set(id || 'exampleval',{state:{character: fixtures.character({}),registry:[]},lastEdit: new Date()})
+}
+
+export const getByID = (charID: string) => {console.log(appState.characters); console.log(appState.characters.get(charID)); return appState.characters.get(charID)}
+
+const parseAction = (actionID: string, data: any): { fn: CSAction, str: string } => {
+  switch (actionID) {
+    case 'insert-attribute': return {fn: AttrFuncs.insert(fixtures.attribute(data),{}), str: `Insert simple attribute ${data.name}`};
+    case 'skill.insert': return {fn: SkillFuncs.insert(data.skill,data.opts), str: `Insert skill ${data.skill.name}`}
+    default: throw new Error('Unhandled Action')
+  }
+}
+
+export const subscribeHandler = (handler: (charID: string, data: any) => void) => {
+  appState.handlers.add(handler)
+}

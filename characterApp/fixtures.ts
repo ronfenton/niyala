@@ -8,7 +8,6 @@ export const attribute = (x:Partial<Attribute>):Attribute => {
     base: 10,
     lvlBase: 10,
     lvlMod: 0,
-    lvlPurchase: 0,
     lvlBought: 0,
     lvl: 10,
     tags: [],

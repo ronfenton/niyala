@@ -2,7 +2,8 @@ import { Server } from 'socket.io';
 import { config as dotenv } from 'dotenv';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 import { Socket } from 'socket.io-client';
-import { socketIOSetup } from './characterApp/app';
+import { createCharacter, getByID, handleAction, subscribeHandler } from './characterApp/app';
+import { Environment, PrompterSettings } from './characterApp/types';
 
 dotenv();
 
@@ -17,14 +18,6 @@ export const ioConsole = {
   log: (s:string):void => console.log(`${logTime()} INFO (socket.io) ${s}`),
 };
 
-type testState = {
-  lastEdit: Date;
-  stringVal: string;
-};
-
-const states = new Map<string, testState>();
-
-
 export const getGlobalIO = async () => {
 
   if (globalSocketIO.server) {
@@ -32,7 +25,7 @@ export const getGlobalIO = async () => {
   }
   const io = new Server(3001, {
     cors: {
-      origin: 'http://localhost:3000',
+      origin: process.env.NEXT_PUBLIC_SERVER_URL,
       methods: ['GET', 'POST'],
     },
   });
@@ -63,10 +56,65 @@ export const getGlobalIO = async () => {
       socket.broadcast.to('messageRoom').emit('message', 'Other client sent '+data);
     });
 
-    socketIOSetup(socket)
+    socket.on('create_req', (payload) => {
+      handleAction(payload.id,'',servEnv.prompter,'create',null)
+      socket.join(payload.id)
+      socket.emit('state_opened', {state:getByID(payload.id).state,id:payload.id})
+    })
+    socket.on('open_req', (payload) => {
+      ioConsole.log(`Character ${payload.id} requesting load from websocket`);
+      socket.join(payload.id);
+      socket.emit(`state_opened`, {state:getByID(payload.id).state,id:payload.id})
+    }) 
+    socket.on('close', (data) => {
+      socket.leave(data.id)
+    })
   });
 
   globalSocketIO.server = io;
   ioConsole.log('Server created on port 3001');
   return globalSocketIO.server;
 };
+
+const charSheetEventHandler = (charID:string, data:{event: string, payload: any}) => {
+  if(data.event == 'State Change') {
+    globalSocketIO.server.to(charID).emit(`state_changed`,{state:data.payload,id:charID})
+  }
+}
+
+subscribeHandler(charSheetEventHandler)
+
+const servEnv:Environment = {
+  logger: {
+    debug: function (x: string): void {
+      throw new Error('Function not implemented.');
+    },
+    log: function (x: string): void {
+      throw new Error('Function not implemented.');
+    },
+    warn: function (x: string): void {
+      throw new Error('Function not implemented.');
+    },
+    error: function (x: string): void {
+      throw new Error('Function not implemented.');
+    },
+    fatal: function (x: string): void {
+      throw new Error('Function not implemented.');
+    }
+  },
+  prompter: {
+    bool: function (context: PrompterSettings): boolean {
+      throw new Error('Function not implemented.');
+    },
+    number: function (context: PrompterSettings): number {
+      throw new Error('Function not implemented.');
+    },
+    text: function (context: PrompterSettings): string {
+      throw new Error('Function not implemented.');
+    },
+    select: function (context: PrompterSettings, options: string[], defaultSelect: string): string {
+      throw new Error('Function not implemented.');
+    }
+  },
+  ruleset: undefined
+}

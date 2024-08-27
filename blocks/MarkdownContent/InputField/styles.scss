@@ -1,0 +1,11 @@
+@import '~payload/scss';
+
+.previewButton {
+  font-style: italic
+
+}
+
+.previewButton:hover {
+  cursor: pointer;
+  text-shadow: 0 0 0 1px white;
+}

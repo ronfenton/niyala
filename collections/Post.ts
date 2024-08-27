@@ -27,6 +27,7 @@ export const Post: CollectionConfig = {
   slug: 'posts',
   admin: {
     useAsTitle: 'title',
+    group: 'Blog',
   },
   access: {
     read: (): boolean => true, // Everyone can read Pages

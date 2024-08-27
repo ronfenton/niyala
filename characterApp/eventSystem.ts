@@ -3,7 +3,7 @@ import type { CSEvent, CSListenerRecord, CSTriggerRecord } from './types';
 import { triggerListToListeners } from './utility';
 import * as enums from './enums';
 
-export const UpdateRegistry = (registry: CSListenerRecord[], triggers: CSTriggerRecord[], funcID:string, listeningCharKey:string, listeningCharType: enums.CharacteristicType):CSListenerRecord[] => {
+export const updateRegistry = (registry: CSListenerRecord[], triggers: CSTriggerRecord[], funcID:string, listeningCharKey:string, listeningCharType: enums.CharacteristicType):CSListenerRecord[] => {
   const listeners = triggerListToListeners(triggers, funcID, listeningCharKey, listeningCharType);
   const filtered = registry.reduce((acc, listener) => {
     if (listener.listeningCharKey !== listeningCharKey || listener.funcID !== funcID) {
@@ -21,4 +21,4 @@ export const UpdateRegistry = (registry: CSListenerRecord[], triggers: CSTrigger
   ];
 };
 
-export const GetListenersForEvent = (registry: CSListenerRecord[], event: CSEvent):CSListenerRecord[] => registry.filter((x) => x.eventName === event.name && (x.origin === undefined || x.origin === event.origin));
+export const getListenersForEvent = (registry: CSListenerRecord[], event: CSEvent):CSListenerRecord[] => registry.filter((x) => x.eventName === event.name && (x.origin === undefined || x.origin === event.origin));

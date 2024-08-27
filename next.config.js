@@ -8,6 +8,7 @@ module.exports = {
   images: {
     domains: [
       'localhost',
+      `192.168.1.120`,
       // Your domain(s) here
     ],
     deviceSizes: sizes,

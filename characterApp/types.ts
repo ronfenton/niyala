@@ -233,7 +233,7 @@ export type Skill = Characteristic &
     defaults: {
       attribute?: number;
       skills?: { name: string; specialisation?: string; offset: number }[];
-      current: { name: string; offset: number };
+      current?: { type: 'skill' | 'attribute'; skill?: string; specialisation?: string };
     };
   };
 
@@ -288,7 +288,13 @@ export type PermissionList = {
   [useruuid: string]: ENUMS.CharacterPermissionRole;
 };
 
-type CharacteristicDefinition = {
+export type CharacteristicDefinition = {
+  key: ENUMS.CharacteristicType,
+  functions: {
+    create?: (key:string, obj: Characteristic) => CSAction,
+    delete?: (key:string, obj: Characteristic) => CSAction,
+    generateKey: (o:Characteristic) => string,
+  },
   createEvent: ENUMS.CSEventNames;
   deleteEvent: ENUMS.CSEventNames;
   moddableValues: {
@@ -403,6 +409,9 @@ export type Character = {
   objectMods: {
     [uuid: string]: ObjectModifier;
   };
+  [ENUMS.CharacteristicType.TESTING]?: {
+
+  };
   objectModifierRegister?: ObjectModifierMap;
 };
 
@@ -412,10 +421,14 @@ export type CharacterState = {
   registry: CSListenerRecord[];
 };
 
+export type Ruleset = {
+  characteristics: CharacteristicSettings
+}
+
 export type Environment = {
   logger: Logger;
   prompter: Prompter;
-  ruleset: unknown;
+  ruleset: Ruleset;
 };
 
 /**

@@ -8,6 +8,7 @@ import {
   CSAction,
   InsertOptions,
   CSEvent,
+  Character,
 } from './types';
 import {
   calcDerivedValue,
@@ -17,8 +18,9 @@ import {
   calcModdedValue,
   getBaseValue,
   stringToValidKey,
+  getCharacteristic,
 } from './utility';
-import { UpdateRegistry } from './eventSystem';
+import { updateRegistry } from './eventSystem';
 
 const calculateLevel = (
   s: Skill,
@@ -57,6 +59,24 @@ const calculateLevel = (
   };
 };
 
+const getDefaultLevel = (s: Skill,character:Character):number | undefined => {
+  if(s.defaults.current === undefined) {
+    return undefined
+  }
+  if(s.defaults.current.type === 'attribute' && s.defaults.attribute !== undefined){
+    return s.defaults.attribute
+  }
+  if(s.defaults.current.specialisation === undefined){
+    const def = getCharacteristic<Skill>(stringToValidKey(s.defaults.current.skill),CharacteristicType.SKILLS,character)
+    return getBaseValue(def.lvl)
+  }
+  const specKey = s.defaults.current.specialisation === "__same" 
+    ? s.specialisation
+    : s.defaults.current.specialisation
+  const def = getCharacteristic<Skill>(stringToValidKey(`${s.defaults.current.skill} (${specKey})`),CharacteristicType.SKILLS,character)
+  return getBaseValue(def.lvl)
+}
+
 const updateDefault = (s: Skill, k: string): CSAction => (env: Environment, state: CharacterState) => {
   if (s.points === 0) {
     // TODO: Implement
@@ -68,16 +88,13 @@ const updateDefault = (s: Skill, k: string): CSAction => (env: Environment, stat
 };
 
 export const updateLevel = (key: string): CSAction => (env: Environment, state: CharacterState) => {
-  const s = _.get(key)(state.character[CharacteristicType.SKILLS]) as Skill;
-  if (s === undefined) {
-    throw new Error(`Skill ${key} not found`);
-  }
   const { character, registry } = state;
+  const s = getCharacteristic<Skill>(key,CharacteristicType.SKILLS,character)
   const calced = calculateLevel(s, key, env, state);
   return {
     state: {
       character: _.set([CharacteristicType.SKILLS, key], calced.s)(character),
-      registry: UpdateRegistry(
+      registry: updateRegistry(
         registry,
         calced.baseListeners,
         'updateLevel',
@@ -98,7 +115,33 @@ export const updateLevel = (key: string): CSAction => (env: Environment, state: 
   };
 };
 
-export const insert = (s: Skill, opts: InsertOptions): CSAction => (env: Environment, state: CharacterState) => {
+export const insert = (k: string, s: Skill): CSAction => (env:Environment, state: CharacterState) => {
+  const { character, registry } = state;
+  const calced = calculateLevel(s, k, env, state);
+  return {
+    state: {
+      character: _.set(
+        `${CharacteristicType.SKILLS}.${k}`,
+        calced.s,
+      )(character),
+      registry: updateRegistry(
+        registry,
+        calced.baseListeners,
+        'updateLevel',
+        `${CharacteristicType.SKILLS}.${k}`,
+        CharacteristicType.SKILLS,
+      ),
+    },
+    events: [
+      {
+        name: CSEventNames.SKILL_CREATED,
+        origin: k,
+      },
+    ],
+  };
+};
+
+export const insertxx = (s: Skill, opts: InsertOptions): CSAction => (env: Environment, state: CharacterState) => {
   const { character, registry } = state;
   const defaultKey = stringToValidKey(
     s.name
@@ -127,7 +170,7 @@ export const insert = (s: Skill, opts: InsertOptions): CSAction => (env: Environ
               `${CharacteristicType.SKILLS}.${defaultKey}`,
               calced.s,
             )(character),
-            registry: UpdateRegistry(
+            registry: updateRegistry(
               registry,
               calced.baseListeners,
               'updateLevel',
@@ -156,7 +199,7 @@ export const insert = (s: Skill, opts: InsertOptions): CSAction => (env: Environ
         `${CharacteristicType.SKILLS}.${defaultKey}`,
         calced.s,
       )(character),
-      registry: UpdateRegistry(
+      registry: updateRegistry(
         registry,
         calced.baseListeners,
         'updateLevel',

@@ -1,10 +1,11 @@
 import React from 'react';
-import { Layout } from '../../collections/Page';
+import { Layout as PageLayout } from '../../collections/Page';
+import { Layout as ArticleLayout } from '../../collections/Article';
 import { components } from '../../blocks';
 import classes from './index.module.css';
 
 type Props = {
-  layout: Layout[]
+  layout: (PageLayout | ArticleLayout)[]
   className?: string
 }
 

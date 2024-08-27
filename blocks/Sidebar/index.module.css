@@ -1,0 +1,11 @@
+.sidebar{
+  max-width: 400px;
+  float:right;
+  display:block;
+  clear:right;
+}
+
+.sidebarHeader{
+  text-align:center;
+  border-bottom: 1px solid grey;
+}

@@ -5,8 +5,11 @@ import type {
   CSEvent,
   CSAction,
   EventActionMap,
+  Characteristic,
+  InsertOptions,
 } from './types';
-import { GetListenersForEvent } from './eventSystem';
+import { getListenersForEvent } from './eventSystem';
+import { CharacteristicType } from './enums';
 
 /**
  * Completely wipes the registry, and iteratively recalculates every single item
@@ -17,7 +20,67 @@ import { GetListenersForEvent } from './eventSystem';
  */
 const RecalculateAll = (s: CharacterState): CharacterState => s;
 
-const eventProcessor2 = (
+/**
+ * New method of adding an object using generics. insertion logic is provided by the environment object's ruleset settings.
+ * @param charObject 
+ * @param charType 
+ * @param opts 
+ * @returns 
+ */
+export const insertObject = (charObject:Characteristic, charType: CharacteristicType, opts: InsertOptions): CSAction => (env:Environment, state:CharacterState) => {
+  const { character, registry } = state;
+  const charSetting = env.ruleset.characteristics[charType]
+
+  // use key override or ruleset-defined key generation for object type.
+  const key = opts.keyOverride || charSetting.functions.generateKey(charObject);
+  if (character[charType][key] === undefined) {
+    const inserted = _.set(['character',charType,key],charObject)(state)
+
+    const postProcessed = charSetting.functions.create !== undefined 
+      ? charSetting.functions.create(key,charObject)(env,inserted)
+      : { state, events: [{
+        name: charSetting.createEvent,
+        origin: key,
+      }] }
+    return postProcessed
+  }
+  const method = opts.conflictMethod === 'prompt'
+    ? env.prompter.select(
+      {
+        title: '',
+        description: '',
+        permitCancel: false,
+      },
+      [],
+      'overwrite',
+    )
+    : opts.conflictMethod;
+
+  switch(method) {
+    case 'overwrite': {
+      const inserted = _.set(['character',charType,key],charObject)(state)
+  
+      const postProcessed = charSetting.functions.create !== undefined 
+        ? charSetting.functions.create(key,charObject)(env,inserted)
+        : { state, events: [{
+          name: charSetting.createEvent,
+          origin: key,
+        }] }
+      return postProcessed
+    }
+    case 'ignore': {
+      return { state: { character, registry }, events: [] };
+    }
+    case 'error': {
+      throw new Error (`Duplicate key (${key}) when inserting ${charType}`)
+    }
+    default: {
+      throw new Error (`Unhandled duplicate key (${key}) when inserting ${charType}`)
+    }
+  }
+}
+
+const eventProcessor = (
   events: CSEvent[],
   env: Environment,
   state: CharacterState,
@@ -30,7 +93,7 @@ const eventProcessor2 = (
 
   const allProcessedResult = events.reduce(
     (mainAccumulator, event, i) => {
-      const listeners = GetListenersForEvent(
+      const listeners = getListenersForEvent(
         mainAccumulator.state.registry,
         event,
       );
@@ -72,7 +135,7 @@ const eventProcessor2 = (
     } as { state: CharacterState; newEvents: CSEvent[] },
   );
 
-  return eventProcessor2(
+  return eventProcessor(
     allProcessedResult.newEvents,
     env,
     allProcessedResult.state,
@@ -88,5 +151,5 @@ export const performAction = (
   eventActionMap: EventActionMap,
 ): CharacterState => {
   const result = action(env, state);
-  return eventProcessor2(result.events, env, result.state, eventActionMap, 0);
+  return eventProcessor(result.events, env, result.state, eventActionMap, 0);
 };

@@ -1,13 +1,13 @@
 import { describe, expect, it } from '@jest/globals';
-import { UpdateRegistry } from './eventSystem';
+import { updateRegistry } from './eventSystem';
 import * as enums from './enums';
 
 describe('When UpdateRegistry is called', () => {
   it('with an empty existing registry, and no listeners, returns an empty array', () => {
-    expect(UpdateRegistry([], [], 'ExampleFunction', 'someobject', enums.CharacteristicType.TESTING)).toHaveLength(0);
+    expect(updateRegistry([], [], 'ExampleFunction', 'someobject', enums.CharacteristicType.TESTING)).toHaveLength(0);
   });
   it('with an empty existing registry, and new listeners, returns an expanded array', () => {
-    expect(UpdateRegistry([], [
+    expect(updateRegistry([], [
       {
         eventName: 'SomeEvent',
       },
@@ -20,7 +20,7 @@ describe('When UpdateRegistry is called', () => {
     ], 'ExampleFunction', 'someobject', enums.CharacteristicType.TESTING)).toHaveLength(3);
   });
   it('with an an registry, and new listeners, returns an array only with the appropriate items.', () => {
-    expect(UpdateRegistry([
+    expect(updateRegistry([
       {
         eventName: 'SomeEvent',
         listeningCharKey: 'someobject',
@@ -46,7 +46,7 @@ describe('When UpdateRegistry is called', () => {
     ], 'ExampleFunction', 'someobject', enums.CharacteristicType.TESTING)).toHaveLength(1);
   });
   it('with an an expanded registry, and new listeners, returns an array only with the appropriate items, and only removes items that are appropriate', () => {
-    expect(UpdateRegistry([
+    expect(updateRegistry([
       {
         eventName: 'SomeEvent', // this event should remain - it is provided in the input.
         listeningCharKey: 'someobject',
