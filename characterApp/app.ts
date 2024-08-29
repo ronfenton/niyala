@@ -162,8 +162,8 @@ export const getByID = (charID: string) => {console.log(appState.characters); co
 
 const parseAction = (actionID: string, data: any): { fn: CSAction, str: string } => {
   switch (actionID) {
-    case 'insert-attribute': return {fn: AttrFuncs.insert(fixtures.attribute(data),{}), str: `Insert simple attribute ${data.name}`};
-    case 'skill.insert': return {fn: SkillFuncs.insert(data.skill,data.opts), str: `Insert skill ${data.skill.name}`}
+    //case 'insert-attribute': return {fn: AttrFuncs.insert(fixtures.attribute(data),{}), str: `Insert simple attribute ${data.name}`};
+    //case 'skill.insert': return {fn: SkillFuncs.insert(data.skill,data.opts), str: `Insert skill ${data.skill.name}`}
     default: throw new Error('Unhandled Action')
   }
 }

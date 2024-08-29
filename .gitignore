@@ -7,3 +7,9 @@ dist
 media/*
 yarn-error.log
 tsconfig.tsbuildinfo
+.yarn/*
+!.yarn/cache
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
