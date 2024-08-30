@@ -7,6 +7,8 @@ import type {
   EventActionMap,
   Characteristic,
   InsertOptions,
+  Ruleset,
+  CSEventAction,
 } from './types';
 import { getListenersForEvent } from './eventSystem';
 import { CharacteristicType } from './enums';
@@ -27,17 +29,17 @@ const RecalculateAll = (s: CharacterState): CharacterState => s;
  * @param opts 
  * @returns 
  */
-export const insertObject = (charObject:Characteristic, charType: CharacteristicType, opts: InsertOptions): CSAction => (env:Environment, state:CharacterState) => {
+export const insertObject = (charObject:Characteristic, charType: CharacteristicType, opts: InsertOptions): CSAction => (env:Environment, state:CharacterState, ruleset:Ruleset) => {
   const { character, registry } = state;
-  const charSetting = env.ruleset.characteristics[charType]
+  const charSetting = ruleset.characteristics[charType]
 
   // use key override or ruleset-defined key generation for object type.
   const key = opts.keyOverride || charSetting.functions.generateKey(charObject);
-  if (character[charType][key] === undefined) {
-    const inserted = _.set(['character',charType,key],charObject)(state)
+  if (character.characteristics[charType][key] === undefined) {
+    const inserted = _.set(['character','characteristics',charType,key],charObject)(state)
 
     const postProcessed = charSetting.functions.create !== undefined 
-      ? charSetting.functions.create(key,charObject)(env,inserted)
+      ? charSetting.functions.create(key,charObject)(env,inserted,ruleset)
       : { state, events: [{
         name: charSetting.createEvent,
         origin: key,
@@ -58,10 +60,10 @@ export const insertObject = (charObject:Characteristic, charType: Characteristic
 
   switch(method) {
     case 'overwrite': {
-      const inserted = _.set(['character',charType,key],charObject)(state)
+      const inserted = _.set(['character','characteristics',charType,key],charObject)(state)
   
       const postProcessed = charSetting.functions.create !== undefined 
-        ? charSetting.functions.create(key,charObject)(env,inserted)
+        ? charSetting.functions.create(key,charObject)(env,inserted,ruleset)
         : { state, events: [{
           name: charSetting.createEvent,
           origin: key,
@@ -83,6 +85,7 @@ export const insertObject = (charObject:Characteristic, charType: Characteristic
 const eventProcessor = (
   events: CSEvent[],
   env: Environment,
+  ruleset: Ruleset,
   state: CharacterState,
   actionMap: EventActionMap,
   pass: number,
@@ -100,10 +103,12 @@ const eventProcessor = (
 
       const eventProcessedResult = listeners.reduce(
         (eventProcessedAccumulator, listener) => {
-          const actionResult = actionMap[listener.listeningCharType][
+          const eventAction:CSEventAction = actionMap[listener.listeningCharType][
             listener.funcID
-          ](
+          ]
+          const actionResult = eventAction(
             env,
+            ruleset,
             eventProcessedAccumulator.state,
             listener.listeningCharKey,
             event.data,
@@ -138,6 +143,7 @@ const eventProcessor = (
   return eventProcessor(
     allProcessedResult.newEvents,
     env,
+    ruleset,
     allProcessedResult.state,
     actionMap,
     pass + 1,
@@ -147,9 +153,10 @@ const eventProcessor = (
 export const performAction = (
   env: Environment,
   state: CharacterState,
+  ruleset: Ruleset,
   action: CSAction,
   eventActionMap: EventActionMap,
 ): CharacterState => {
-  const result = action(env, state);
-  return eventProcessor(result.events, env, result.state, eventActionMap, 0);
+  const result = action(env, state,ruleset);
+  return eventProcessor(result.events, env, ruleset, result.state, eventActionMap, 0);
 };

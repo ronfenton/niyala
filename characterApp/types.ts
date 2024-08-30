@@ -394,41 +394,29 @@ export type ObjectModifier = Characteristic & {
 export type Character = {
   id: string;
   version: Version;
-  attributes: {
-    [key: string]: Attribute;
-  };
-  skills: {
-    [key: string]: Skill;
-  };
-  items: {
-    [uuid: string]: InventoryItem;
-  };
-  resources: {
-    [key: string]: Resource;
-  };
-  objectMods: {
-    [uuid: string]: ObjectModifier;
-  };
-  [ENUMS.CharacteristicType.TESTING]?: {
-
-  };
+  characteristics: {
+    [key: (ENUMS.CharacteristicType | string)]: {
+      [key: string]: Characteristic
+    }
+  }
   objectModifierRegister?: ObjectModifierMap;
 };
 
 // /////////////////////////////
-export type CharacterState = {
-  character: Character;
-  registry: CSListenerRecord[];
-};
 
 export type Ruleset = {
   characteristics: CharacteristicSettings
 }
 
+export type CharacterState = {
+  character: Character;
+  registry: CSListenerRecord[];
+  rulesetID?: string;
+};
+
 export type Environment = {
   logger: Logger;
   prompter: Prompter;
-  ruleset: Ruleset;
 };
 
 /**
@@ -465,13 +453,20 @@ export type CSListenerMap = {
   };
 };
 
+export type CSActionResult = {
+  state: CharacterState,
+  events: CSEvent[],
+}
+
 export type CSAction = (
   e: Environment,
   c: CharacterState,
-) => { state: CharacterState; events: CSEvent[] };
+  r: Ruleset,
+) => CSActionResult;
 
 export type CSEventAction = (
   env: Environment,
+  ruleset: Ruleset,
   state: CharacterState,
   path: string,
   data: unknown,

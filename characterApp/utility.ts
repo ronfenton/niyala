@@ -75,7 +75,7 @@ export const calcModdedValue = (
     return { value: v, triggers: [] };
   }
   const res = modKeys
-    .map((key) => state.character.objectMods[key].effect as ObjectModifierValue)
+    .map((key) => state.character.characteristics.objectMods[key].effect as ObjectModifierValue)
     .sort(sortArithmeticMods)
     .reduce(
       (acc, mod) => {
