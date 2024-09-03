@@ -1,14 +1,8 @@
-import { Interaction } from 'discord.js';
-import { Server, Socket } from 'socket.io';
-import { DefaultEventsMap } from 'socket.io/dist/typed-events';
-import { getGlobalIO } from '../socketio';
-import { Attribute, CSAction, CharacterState, Environment, Prompter, PrompterSettings } from './types';
-import { performAction } from './character';
-import * as AttrFuncs from './attribute';
-import * as SkillFuncs from './skill';
+import { CSAction, CharacterState, Environment, Prompter, PrompterSettings } from './types';
+import { insertObject, performAction } from './character';
+import { definition as attributeDef } from './attribute'
 import * as enums from './enums'
 import * as fixtures from './fixtures'
-import handler from '../pages/api/randomBackground';
 
 const someMockDB = {}
 
@@ -77,10 +71,15 @@ export const printDebug = () => {
   const mapped = [...characters.entries()].reduce( (acc, c) => ( 
     acc[c[0]] = c[1], 
     acc), {})
-  return JSON.stringify({
+  console.log(JSON.stringify({
     characters: mapped,
     lastFileBackup, lastDBBackup
-  }, null, 4)
+  }, null, 4))
+  return `Debug sent to service console`
+  //return JSON.stringify({
+  //  characters: mapped,
+  //  lastFileBackup, lastDBBackup
+  //}, null, 4)
 }
 
 
@@ -117,7 +116,6 @@ const servEnv:Environment = {
       throw new Error('Function not implemented.');
     }
   },
-  ruleset: undefined
 }
 
 /**
@@ -144,7 +142,7 @@ export const handleAction = (charID: string, userID: string, prompter: Prompter,
       return;
     }
     appState.debugLogger(`${charID}: ${action.str}`)
-    const result = performAction({...servEnv,prompter},char.state,action.fn,{})
+    const result = performAction(action.fn,char.state,{characteristics:{attributes:attributeDef}},{...servEnv,prompter})
     appState.characters.set(charID,{state:result,lastEdit: new Date()})
     appState.handlers.forEach((handler) => handler(charID, {event: 'State Change', payload: result}))
     return action.str + ': successful'
@@ -161,8 +159,15 @@ export const createCharacter = (id?:string) => {
 export const getByID = (charID: string) => {console.log(appState.characters); console.log(appState.characters.get(charID)); return appState.characters.get(charID)}
 
 const parseAction = (actionID: string, data: any): { fn: CSAction, str: string } => {
+  console.info(
+    `%cReq Received.\nAct. ID %c${actionID}%c` + Object.entries(data).map(([k,v]) => `\n-${k} (${typeof v}):${v}`).join() + `\n${JSON.stringify(data)}`,
+    `color: cyan;`,
+    `color: yellow; font-weight: bold;`,
+    `color: cyan;`
+  )
   switch (actionID) {
-    //case 'insert-attribute': return {fn: AttrFuncs.insert(fixtures.attribute(data),{}), str: `Insert simple attribute ${data.name}`};
+    case 'insert-attribute': return {fn: insertObject(fixtures.attribute(data), enums.CharacteristicType.ATTRIBUTES,{}), str: `Insert simple attribute ${data.name}`};
+    //case 'insert-attribute': return {fn: (c,r,e) => { return { state: {...c,someVal:'HI!'},events:[]}},str:'tested'}
     //case 'skill.insert': return {fn: SkillFuncs.insert(data.skill,data.opts), str: `Insert skill ${data.skill.name}`}
     default: throw new Error('Unhandled Action')
   }
@@ -170,4 +175,10 @@ const parseAction = (actionID: string, data: any): { fn: CSAction, str: string }
 
 export const subscribeHandler = (handler: (charID: string, data: any) => void) => {
   appState.handlers.add(handler)
+}
+
+const v = {
+  fn: {
+    
+  }
 }

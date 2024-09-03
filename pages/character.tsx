@@ -1,7 +1,7 @@
 import React from 'react'
 import { attribute, character } from '../characterApp/fixtures'
 import { Socket, io } from 'socket.io-client'
-import { CharacterState, Characteristic } from '../characterApp/types'
+import { Attribute, CharacterState, Characteristic } from '../characterApp/types'
 import AttributeDetail from '../components/CharacterApp/AttributeDetail'
 
 const xxxCharacterPage = () => {
@@ -15,7 +15,7 @@ const xxxCharacterPage = () => {
     <CharacterContext.Provider value={{state,dispatch}}>
       <InputElement/>
       <DisplayElement/>
-      {Object.entries(state.character.attributes).map(([k,v]) => <AttributeDetail key={k} a={v} itemKey={k}/> )}
+      {Object.entries(state.character.characteristics.attributes).map(([k,v]) => <AttributeDetail key={k} a={v as Attribute} itemKey={k}/> )}
     </CharacterContext.Provider>
   </div>
 }
@@ -29,7 +29,7 @@ const CharacterPage = () => {
     <CharacterContext.Provider value={{state,dispatch}}>
       <h1>Character Page </h1>
       <SocketIOInserter {...{so}}/>
-      { state != undefined ? <CharacteristicDisplay {...{obj:state.character.attributes,keyNames:[["name","Attributes"],["lvl","Lvl"]]}} /> : null }
+      { state != undefined ? <CharacteristicDisplay {...{obj:state.character.characteristics.attributes,keyNames:[["name","Attributes"],["lvl","Lvl"]]}} /> : null }
     </CharacterContext.Provider>
   </div>
 }
@@ -104,7 +104,7 @@ const reducerWithLogger = (state:CharacterState, action:CharacterInstruction, ex
     case "B": 
       return {character:character({}), registry: []}
     case "SET_ATTR": 
-      return {...state,character:{...state.character,attributes:{...state.character.attributes,[action.payload.key]:action.payload.data}}}
+      return {...state,character:{...state.character,attributes:{...state.character.characteristics.attributes,[action.payload.key]:action.payload.data}}}
     default:
       externalApp(`Unrecognized Action: ${action.type}`)
       return state

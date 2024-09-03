@@ -1,15 +1,45 @@
 import { describe, expect, test, it } from '@jest/globals';
 import { text } from 'express';
 import { calcDerivedValue, costMapLevelToPoints, costMapPointsToLevel, testComparator } from './utility';
+import { definition as attributeDefinition } from './attribute'
 import * as fixtures from './fixtures';
-import { ComparatorAutomatic, ComparatorLogic, ComparatorString, ComparatorValue, DerivedValue, DerivedValueResult } from './types';
+import { Characteristic, ComparatorAutomatic, ComparatorLogic, ComparatorString, ComparatorValue, CSAction, DerivedValue, DerivedValueResult, Ruleset } from './types';
 import * as enums from './enums';
+
+const emptyAction:CSAction = (c,r,e) => ( {state:c, events: [] })
+
+const demoRuleset:Ruleset = {
+  characteristics: {
+    [enums.CharacteristicType.TESTING]: {
+        key: enums.CharacteristicType.TESTING,
+        functions: {
+          create: function (key: string, obj: Characteristic): CSAction {
+            return emptyAction
+          },
+          delete: function (key: string, obj: Characteristic): CSAction {
+            return emptyAction
+          },
+          generateKey: function (o: Characteristic): string {
+            return 'exampleKey'
+          }
+        },
+        createEvent: enums.CSEventNames.ATTRIBUTE_CREATED,
+        deleteEvent: enums.CSEventNames.ATTRIBUTE_CREATED,
+        moddableValues: {},
+        queryableValues: {},
+        eventResponses: {},
+    },
+    [enums.CharacteristicType.ATTRIBUTES]: attributeDefinition
+  }
+}
 
 const demoCharState = {
   character: fixtures.character({
-    attributes: {
-      Dexterity: fixtures.attribute({ name: 'Dexterity', abbreviation: 'DX', lvl: 14 }),
-      Health: fixtures.attribute({ name: 'Health', abbreviation: 'HT', lvl: 18 }),
+    characteristics: {
+      attributes: {
+        Dexterity: fixtures.attribute({ name: 'Dexterity', abbreviation: 'DX', lvl: 14 }),
+        Health: fixtures.attribute({ name: 'Health', abbreviation: 'HT', lvl: 18 }),
+      },
     },
   }),
   registry: [],
@@ -19,21 +49,21 @@ describe('CalculateBase', () => {
   describe('Given a non-\'Base\' type', () => {
     it('with the numeral 10, returns text 10 and value 10', () => {
       const base: DerivedValue = 10;
-      const res = calcDerivedValue(base, demoCharState);
+      const res = calcDerivedValue(base, demoCharState, demoRuleset);
       expect(res).toHaveProperty('text', '10');
       expect(res).toHaveProperty('value', 10);
     });
     test.failing('With undefined, errors and fails', () => {
       const base: DerivedValue = undefined;
-      calcDerivedValue(base, demoCharState);
+      calcDerivedValue(base, demoCharState, demoRuleset);
     });
     test.failing('With null, errors and fails', () => {
       const base: DerivedValue = null;
-      calcDerivedValue(base, demoCharState);
+      calcDerivedValue(base, demoCharState, demoRuleset);
     });
     test.failing('With a string, errors and fails', () => {
       const base: DerivedValue = '10' as any;
-      calcDerivedValue(base, demoCharState);
+      calcDerivedValue(base, demoCharState, demoRuleset);
     });
   });
   describe('Given a Bracketed Base', () => {
@@ -43,7 +73,7 @@ describe('CalculateBase', () => {
         values: [10, 5],
         operands: ['x'],
       };
-      const res = calcDerivedValue(base, demoCharState);
+      const res = calcDerivedValue(base, demoCharState, demoRuleset);
       expect(res).toHaveProperty('text', '( 10 x 5 )');
       expect(res).toHaveProperty('value', 50);
     });
@@ -53,7 +83,7 @@ describe('CalculateBase', () => {
         values: [10, 5, 2],
         operands: ['-', 'x'],
       };
-      const res = calcDerivedValue(base, demoCharState);
+      const res = calcDerivedValue(base, demoCharState, demoRuleset);
       expect(res).toHaveProperty('text', '( 10 - 5 x 2 )');
       expect(res).toHaveProperty('value', 0);
     });
@@ -63,7 +93,7 @@ describe('CalculateBase', () => {
         values: [10, 5, 2],
         operands: ['-'],
       };
-      calcDerivedValue(base, demoCharState);
+      calcDerivedValue(base, demoCharState, demoRuleset);
     });
     test.failing('With two values and two operands; errors and fails', () => {
       const base: DerivedValue = {
@@ -71,7 +101,7 @@ describe('CalculateBase', () => {
         values: [10, 5],
         operands: ['-', '+'],
       };
-      calcDerivedValue(base, demoCharState);
+      calcDerivedValue(base, demoCharState, demoRuleset);
     });
   });
   describe('Given an Attribute Base', () => {
@@ -83,7 +113,7 @@ describe('CalculateBase', () => {
         key: 'Dexterity',
         fallback: 10,
       };
-      const res = calcDerivedValue(base, demoCharState);
+      const res = calcDerivedValue(base, demoCharState, demoRuleset);
       expect(res).toHaveProperty('text', 'DX');
       expect(res).toHaveProperty('value', 14);
       expect(res.updateTriggers).toHaveLength(2);
@@ -96,7 +126,7 @@ describe('CalculateBase', () => {
         key: 'Strength',
         fallback: 10,
       };
-      const res = calcDerivedValue(base, demoCharState);
+      const res = calcDerivedValue(base, demoCharState, demoRuleset);
       expect(res).toHaveProperty('text', '10');
       expect(res).toHaveProperty('value', 10);
       expect(res.updateTriggers).toHaveLength(1);
@@ -153,7 +183,7 @@ describe('CalculateBase', () => {
         text: '( ( DX + HT ) / 4 )',
         value: 8,
       };
-      expect(calcDerivedValue(base, demoCharState)).toStrictEqual(expectedState);
+      expect(calcDerivedValue(base, demoCharState, demoRuleset)).toStrictEqual(expectedState);
     });
   });
 });
@@ -275,9 +305,9 @@ describe('Object Filtering', () => {
           { type: 'auto', result: false },
         ],
       };
-      expect(testComparator(passA, demoCharState)).toStrictEqual(true);
-      expect(testComparator(passB, demoCharState)).toStrictEqual(true);
-      expect(testComparator(fail, demoCharState)).toStrictEqual(false);
+      expect(testComparator(passA, demoCharState, demoRuleset)).toStrictEqual(true);
+      expect(testComparator(passB, demoCharState, demoRuleset)).toStrictEqual(true);
+      expect(testComparator(fail, demoCharState, demoRuleset)).toStrictEqual(false);
     });
     it('with the NOR Operator, returns all options are false', () => {
       const passA: ComparatorLogic = {
@@ -314,10 +344,10 @@ describe('Object Filtering', () => {
           { type: 'auto', result: false },
         ],
       };
-      expect(testComparator(passA, demoCharState)).toStrictEqual(true);
-      expect(testComparator(passB, demoCharState)).toStrictEqual(true);
-      expect(testComparator(failA, demoCharState)).toStrictEqual(false);
-      expect(testComparator(failB, demoCharState)).toStrictEqual(false);
+      expect(testComparator(passA, demoCharState, demoRuleset)).toStrictEqual(true);
+      expect(testComparator(passB, demoCharState, demoRuleset)).toStrictEqual(true);
+      expect(testComparator(failA, demoCharState, demoRuleset)).toStrictEqual(false);
+      expect(testComparator(failB, demoCharState, demoRuleset)).toStrictEqual(false);
     });
     it('with the AND Operator, returns all options are true', () => {
       const passA: ComparatorLogic = {
@@ -354,10 +384,10 @@ describe('Object Filtering', () => {
           { type: 'auto', result: false },
         ],
       };
-      expect(testComparator(passA, demoCharState)).toStrictEqual(true);
-      expect(testComparator(passB, demoCharState)).toStrictEqual(true);
-      expect(testComparator(failA, demoCharState)).toStrictEqual(false);
-      expect(testComparator(failB, demoCharState)).toStrictEqual(false);
+      expect(testComparator(passA, demoCharState, demoRuleset)).toStrictEqual(true);
+      expect(testComparator(passB, demoCharState, demoRuleset)).toStrictEqual(true);
+      expect(testComparator(failA, demoCharState, demoRuleset)).toStrictEqual(false);
+      expect(testComparator(failB, demoCharState, demoRuleset)).toStrictEqual(false);
     });
   });
   describe('When using the LogicalString test', () => {
@@ -367,13 +397,13 @@ describe('Object Filtering', () => {
         a: 'a',
         b: 'a',
         comparator: 'is',
-      }, demoCharState)).toStrictEqual(true);
+      }, demoCharState, demoRuleset)).toStrictEqual(true);
       expect(testComparator({
         type: 'string',
         a: 'a',
         b: 'b',
         comparator: 'is',
-      }, demoCharState)).toStrictEqual(false);
+      }, demoCharState, demoRuleset)).toStrictEqual(false);
     });
     it('with the includes comparator, matches if strings contain eachother', () => {
       expect(testComparator({
@@ -381,13 +411,13 @@ describe('Object Filtering', () => {
         a: 'somestring',
         b: 'string',
         comparator: 'includes',
-      }, demoCharState)).toStrictEqual(true);
+      }, demoCharState, demoRuleset)).toStrictEqual(true);
       expect(testComparator({
         type: 'string',
         a: 'somestring',
         b: 'other',
         comparator: 'includes',
-      }, demoCharState)).toStrictEqual(false);
+      }, demoCharState, demoRuleset)).toStrictEqual(false);
     });
     it('with the regex comparator, returns true if regex matches', () => {
       expect(testComparator({
@@ -395,13 +425,13 @@ describe('Object Filtering', () => {
         a: 'Something1234',
         b: '[A-Za-z]{8,20}\\d{4}',
         comparator: 'regex',
-      }, demoCharState)).toStrictEqual(true);
+      }, demoCharState, demoRuleset)).toStrictEqual(true);
       expect(testComparator({
         type: 'string',
         a: 'Something1234',
         b: '[A-Za-z]{4}\\d{10}',
         comparator: 'regex',
-      }, demoCharState)).toStrictEqual(false);
+      }, demoCharState, demoRuleset)).toStrictEqual(false);
     });
   });
   describe('When using the LogicalValue test', () => {
@@ -411,13 +441,13 @@ describe('Object Filtering', () => {
         a: 5,
         b: 5,
         comparator: '=',
-      }, demoCharState)).toStrictEqual(true);
+      }, demoCharState, demoRuleset)).toStrictEqual(true);
       expect(testComparator({
         type: 'value',
         a: 5,
         b: 6,
         comparator: '=',
-      }, demoCharState)).toStrictEqual(false);
+      }, demoCharState, demoRuleset)).toStrictEqual(false);
     });
     it('with the > comparator, return true if value a is greater than b', () => {
       expect(testComparator({
@@ -425,13 +455,13 @@ describe('Object Filtering', () => {
         a: 6,
         b: 5,
         comparator: '>',
-      }, demoCharState)).toStrictEqual(true);
+      }, demoCharState, demoRuleset)).toStrictEqual(true);
       expect(testComparator({
         type: 'value',
         a: 5,
         b: 5,
         comparator: '>',
-      }, demoCharState)).toStrictEqual(false);
+      }, demoCharState, demoRuleset)).toStrictEqual(false);
     });
     it('with the < comparator, return true if value a is less than b', () => {
       expect(testComparator({
@@ -439,13 +469,13 @@ describe('Object Filtering', () => {
         a: 5,
         b: 6,
         comparator: '<',
-      }, demoCharState)).toStrictEqual(true);
+      }, demoCharState, demoRuleset)).toStrictEqual(true);
       expect(testComparator({
         type: 'value',
         a: 5,
         b: 5,
         comparator: '<',
-      }, demoCharState)).toStrictEqual(false);
+      }, demoCharState, demoRuleset)).toStrictEqual(false);
     });
     it('with the != comparator, return true if values are different', () => {
       expect(testComparator({
@@ -453,19 +483,19 @@ describe('Object Filtering', () => {
         a: 5,
         b: 6,
         comparator: '!=',
-      }, demoCharState)).toStrictEqual(true);
+      }, demoCharState, demoRuleset)).toStrictEqual(true);
       expect(testComparator({
         type: 'value',
         a: 5,
         b: 5,
         comparator: '!=',
-      }, demoCharState)).toStrictEqual(false);
+      }, demoCharState, demoRuleset)).toStrictEqual(false);
     });
   });
   describe('When using TestComparator on a single object', () => {
     it('with a Auto type; the test returns the designated result', () => {
       const comparator: ComparatorAutomatic = { type: 'auto', result: true };
-      expect(testComparator(comparator, demoCharState)).toStrictEqual(true);
+      expect(testComparator(comparator, demoCharState, demoRuleset)).toStrictEqual(true);
     });
     it('with a String type checking the subject\'s name, the test only passes when name matches', () => {
       const comparator: ComparatorString = {
@@ -480,8 +510,8 @@ describe('Object Filtering', () => {
         },
         comparator: 'is',
       };
-      expect(testComparator(comparator, demoCharState, { subject: demoCharState.character.attributes.Dexterity })).toStrictEqual(true);
-      expect(testComparator(comparator, demoCharState, { subject: demoCharState.character.attributes.Strength })).toStrictEqual(false);
+      expect(testComparator(comparator, demoCharState, demoRuleset, { subject: demoCharState.character.characteristics.attributes.Dexterity })).toStrictEqual(true);
+      expect(testComparator(comparator, demoCharState, demoRuleset, { subject: demoCharState.character.characteristics.attributes.Strength })).toStrictEqual(false);
     });
     it('with a Value type checking the subject\'s level, the test only passes when the level matches', () => {
       const comparator: ComparatorValue = {
@@ -496,8 +526,8 @@ describe('Object Filtering', () => {
         },
         comparator: '=',
       };
-      expect(testComparator(comparator, demoCharState, { subject: demoCharState.character.attributes.Dexterity })).toStrictEqual(true);
-      expect(testComparator(comparator, demoCharState, { subject: demoCharState.character.attributes.Strength })).toStrictEqual(false);
+      expect(testComparator(comparator, demoCharState, demoRuleset, { subject: demoCharState.character.characteristics.attributes.Dexterity })).toStrictEqual(true);
+      expect(testComparator(comparator, demoCharState, demoRuleset, { subject: demoCharState.character.characteristics.attributes.Strength })).toStrictEqual(false);
     });
   });
 });

@@ -151,6 +151,8 @@ export type CostLevelMap = {
   progression?: number[]; // For cases with a large variability or multiple, costed options that may not be linear.
   custom?: number; // for cases of truly variable price - no +/- offered, must be set manually
   extra?: number; // extra points that are not affected by mods.
+  startLvl?: number; // sets what level 0 is actually equal to. Use for skills (EG; -1 for Easy).
+  returnNullOnZero?: boolean; // if the character should return null on a 0 on any GetLevel result.
 };
 
 export type CostModifier = {
@@ -295,6 +297,9 @@ export type CharacteristicDefinition = {
     delete?: (key:string, obj: Characteristic) => CSAction,
     generateKey: (o:Characteristic) => string,
   },
+  eventResponses: {
+    [key:string]: CSEventResponse
+  },
   createEvent: ENUMS.CSEventNames;
   deleteEvent: ENUMS.CSEventNames;
   moddableValues: {
@@ -304,8 +309,9 @@ export type CharacteristicDefinition = {
       displayName: string;
     };
   };
-  selectableValues: {
+  queryableValues: {
     [keyName: string]: {
+      displayName: string;
       type: 'moddableValue' | 'moddableString' | 'value' | 'string' | 'boolean';
       changeEvent: ENUMS.CSEventNames;
       stringFunc: (obj) => string;
@@ -395,7 +401,7 @@ export type Character = {
   id: string;
   version: Version;
   characteristics: {
-    [key: (ENUMS.CharacteristicType | string)]: {
+    [key in ENUMS.CharacteristicType]?: {
       [key: string]: Characteristic
     }
   }
@@ -459,25 +465,30 @@ export type CSActionResult = {
 }
 
 export type CSAction = (
-  e: Environment,
   c: CharacterState,
   r: Ruleset,
+  e: Environment,
 ) => CSActionResult;
 
 export type CSEventAction = (
-  env: Environment,
-  ruleset: Ruleset,
-  state: CharacterState,
   path: string,
   data: unknown,
-) => { state: CharacterState; events: CSEvent[] };
+  state: CharacterState,
+  rs: Ruleset,
+  env: Environment,
+) => CSActionResult;
 
-export type CharacteristicEventActionMap = {
-  [functionName: string]: CSEventAction;
+export type CSEventResponse = (
+  path: string,
+  event: CSEvent,
+) => CSAction
+
+export type CharacteristicEventResponseMap = {
+  [functionName: string]: CSEventResponse;
 };
 
 export type EventActionMap = {
-  [key in ENUMS.CharacteristicType]?: CharacteristicEventActionMap;
+  [key in ENUMS.CharacteristicType]?: CharacteristicEventResponseMap;
 };
 
 export type DerivedResult = {

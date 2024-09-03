@@ -1,4 +1,4 @@
-import { Attribute, Character, ObjectModifier } from './types';
+import { Attribute, Character, Environment, Logger, ObjectModifier, Prompter, PrompterSettings } from './types';
 import * as enums from './enums';
 
 export const attribute = (x:Partial<Attribute>):Attribute => {
@@ -46,15 +46,35 @@ export const objectMod = (x:Partial<ObjectModifier>):ObjectModifier => {
 
 export const character = (x:Partial<Character>):Character => {
   const c:Character = {
-    attributes: {},
-    skills: {},
-    items: {},
-    resources: {},
+    characteristics: {
+      attributes: {},
+      objectMods: {},
+    },
     version: { current: '0', last: '-1' },
     id: '0',
-    objectMods: {},
     objectModifierRegister: {},
     ...x,
   };
   return c;
 };
+
+export const environment = (x:Partial<{logger:Partial<Logger>,prompter:Partial<Prompter>}>):Environment => {
+  const e:Environment = {
+    logger: {
+      debug: console.debug,
+      log: console.info,
+      warn: console.log,
+      error: console.warn,
+      fatal: console.error,
+      ...(x.logger !== undefined ? x.logger : {})
+    },
+    prompter: {
+      bool: () => Math.random() >= 0.5,
+      number: () => Math.ceil(Math.random()*100),
+      text: () => Math.ceil(Math.random()*100).toString(),
+      select: (_, options: string[]): string => options[Math.floor(Math.random()*options.length)],
+      ...(x.prompter !== undefined ? x.prompter : {})
+    },
+  };
+  return e;
+}

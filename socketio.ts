@@ -116,5 +116,4 @@ const servEnv:Environment = {
       throw new Error('Function not implemented.');
     }
   },
-  ruleset: undefined
 }

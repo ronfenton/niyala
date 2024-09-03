@@ -22,6 +22,8 @@ import {
   ObjectModifierValue,
   Character,
   Environment,
+  Ruleset,
+  ObjectModifier,
 } from './types';
 import * as enums from './enums';
 // import { customAlphabet } from "nanoid";
@@ -70,16 +72,17 @@ export const calcModdedValue = (
   v: number,
   modKeys: string[],
   state: CharacterState,
+  rs: Ruleset,
 ): { value: ModdableValue; triggers: CSTriggerRecord[] } => {
   if (modKeys.length === 0) {
     return { value: v, triggers: [] };
   }
   const res = modKeys
-    .map((key) => state.character.characteristics.objectMods[key].effect as ObjectModifierValue)
+    .map((key) => (state.character.characteristics.objectMods[key] as ObjectModifier).effect as ObjectModifierValue)
     .sort(sortArithmeticMods)
     .reduce(
       (acc, mod) => {
-        const modVal = calcDerivedValue(mod.value, state, { subject });
+        const modVal = calcDerivedValue(mod.value, state, rs, { subject });
         return {
           value: arithmetic(mod.operand, acc.value, modVal.value),
           triggers: [...acc.triggers, ...modVal.updateTriggers],
@@ -230,6 +233,7 @@ export const triggerListToListeners = (
 export const calcDerivedString = (
   d: DerivedString,
   state: CharacterState,
+  rs: Ruleset,
   context?: { subject?: Characteristic },
 ): DerivedStringResult => {
   if (typeof d === 'string') {
@@ -239,7 +243,7 @@ export const calcDerivedString = (
     case enums.DerivedStringType.STRING:
       return { text: d.value, string: d.value, updateTriggers: [] };
     case enums.DerivedStringType.CHARACTERISTIC:
-      return calcDerivedStringFromCharacteristic(d, state, context);
+      return calcDerivedStringFromCharacteristic(d, state, rs, context);
     default:
       throw new Error('unrecognized type');
   }
@@ -247,23 +251,23 @@ export const calcDerivedString = (
 
 export const getComparatorEvents = (
   c: Comparator,
-  env: Environment,
   state: CharacterState,
+  rs: Ruleset,
 ): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
   switch (c.type) {
     case 'auto':
       return { subjectEvents: [], externalEvents: [] };
     case 'string': {
-      const a = getDerivedStringEvents(c.a, env, state);
-      const b = getDerivedStringEvents(c.b, env, state);
+      const a = getDerivedStringEvents(c.a, state, rs);
+      const b = getDerivedStringEvents(c.b, state, rs);
       return {
         subjectEvents: [...a.subjectEvents, ...b.subjectEvents],
         externalEvents: [...a.externalEvents, ...b.externalEvents],
       };
     }
     case 'value': {
-      const a = getDerivedValueEvents(c.a, env, state);
-      const b = getDerivedValueEvents(c.b, env, state);
+      const a = getDerivedValueEvents(c.a, state, rs);
+      const b = getDerivedValueEvents(c.b, state, rs);
       return {
         subjectEvents: [...a.subjectEvents, ...b.subjectEvents],
         externalEvents: [...a.externalEvents, ...b.externalEvents],
@@ -272,7 +276,7 @@ export const getComparatorEvents = (
     case 'logic': {
       return c.selectors.reduce(
         (acc, sel) => {
-          const res = getComparatorEvents(sel, env, state);
+          const res = getComparatorEvents(sel, state, rs);
           return {
             subjectEvents: [...acc.subjectEvents, ...res.subjectEvents],
             externalEvents: [...acc.externalEvents, ...res.externalEvents],
@@ -288,8 +292,8 @@ export const getComparatorEvents = (
 
 export const getDerivedStringEvents = (
   d: DerivedString,
-  env: Environment,
   state: CharacterState,
+  rs: Ruleset,
 ): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
   if (typeof d === 'string') {
     return { subjectEvents: [], externalEvents: [] };
@@ -298,7 +302,7 @@ export const getDerivedStringEvents = (
     case enums.DerivedStringType.STRING:
       return { subjectEvents: [], externalEvents: [] };
     case enums.DerivedStringType.CHARACTERISTIC:
-      return getDerivedStringCharacteristicEvents(d, env, state);
+      return getDerivedStringCharacteristicEvents(d, state, rs);
     default:
       throw new Error('unrecognized type');
   }
@@ -306,11 +310,11 @@ export const getDerivedStringEvents = (
 
 const getDerivedStringCharacteristicEvents = (
   b: DerivedStringCharacteristic,
-  env: Environment,
   state: CharacterState,
+  rs: Ruleset,
 ): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
-  const charTypeSettings = env.ruleset.characteristics[b.charType];
-  const propSettings = charTypeSettings.selectableValues?.[b.property];
+  const charTypeSettings = rs.characteristics[b.charType];
+  const propSettings = charTypeSettings.queryableValues?.[b.property];
   if (b.key === '__subject') {
     if (propSettings === undefined) {
       return {
@@ -319,8 +323,8 @@ const getDerivedStringCharacteristicEvents = (
       };
     }
   }
-  if (state.character[b.charType][b.key] === undefined) {
-    const fb = getDerivedStringEvents(b.fallback, env, state);
+  if (state.character.characteristics[b.charType][b.key] === undefined) {
+    const fb = getDerivedStringEvents(b.fallback, state, rs);
     return {
       subjectEvents: [...fb.subjectEvents],
       externalEvents: [
@@ -346,8 +350,8 @@ const getDerivedStringCharacteristicEvents = (
 
 export const getDerivedValueEvents = (
   b: DerivedValue,
-  env: Environment,
   state: CharacterState,
+  rs: Ruleset,
 ): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
   if (typeof b === 'number') {
     return { subjectEvents: [], externalEvents: [] };
@@ -356,9 +360,9 @@ export const getDerivedValueEvents = (
     case enums.DerivedValueType.VALUE:
       return { subjectEvents: [], externalEvents: [] };
     case enums.DerivedValueType.CHARACTERISTIC:
-      return getDerivedValueCharacteristicEvents(b, env, state);
+      return getDerivedValueCharacteristicEvents(b, state, rs);
     case enums.DerivedValueType.BRACKET:
-      return getDerivedValueBracketEvents(b, env, state);
+      return getDerivedValueBracketEvents(b, state, rs);
     default:
       throw new Error('unrecognized type');
   }
@@ -366,11 +370,11 @@ export const getDerivedValueEvents = (
 
 const getDerivedValueBracketEvents = (
   b: DerivedValueBracket,
-  env: Environment,
   state: CharacterState,
+  rs: Ruleset,
 ): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => b.values.reduce(
   (acc, val) => {
-    const evs = getDerivedValueEvents(val, env, state);
+    const evs = getDerivedValueEvents(val, state, rs);
     return {
       subjectEvents: [...acc.subjectEvents, ...evs.subjectEvents],
       externalEvents: [...acc.externalEvents, ...evs.externalEvents],
@@ -381,11 +385,11 @@ const getDerivedValueBracketEvents = (
 
 const getDerivedValueCharacteristicEvents = (
   b: DerivedValueCharacteristic,
-  env: Environment,
   state: CharacterState,
+  rs: Ruleset,
 ): { subjectEvents: CSTriggerRecord[]; externalEvents: CSTriggerRecord[] } => {
-  const charTypeSettings = env.ruleset.characteristics[b.charType];
-  const propSettings = charTypeSettings.selectableValues?.[b.property];
+  const charTypeSettings = rs.characteristics[b.charType];
+  const propSettings = charTypeSettings.queryableValues?.[b.property];
   if (b.key === '__subject') {
     if (propSettings === undefined) {
       return {
@@ -394,8 +398,8 @@ const getDerivedValueCharacteristicEvents = (
       };
     }
   }
-  if (state.character[b.charType][b.key] === undefined) {
-    const fb = getDerivedValueEvents(b.fallback, env, state);
+  if (state.character.characteristics[b.charType][b.key] === undefined) {
+    const fb = getDerivedValueEvents(b.fallback, state, rs);
     return {
       subjectEvents: [...fb.subjectEvents],
       externalEvents: [
@@ -422,8 +426,8 @@ const getDerivedValueCharacteristicEvents = (
 // BASE FUNCTIONS
 export const calcDerivedValue = (
   b: DerivedValue,
-  env: Environment,
   state: CharacterState,
+  rs: Ruleset,
   context?: { parent?: string; subject?: Characteristic },
 ): DerivedValueResult => {
   if (typeof b === 'number') {
@@ -437,9 +441,9 @@ export const calcDerivedValue = (
         updateTriggers: [],
       };
     case enums.DerivedValueType.BRACKET:
-      return calcBracket(b, state, context);
+      return calcBracket(b, state, rs, context);
     case enums.DerivedValueType.CHARACTERISTIC:
-      return calcDerivedValueFromCharacteristic(b, env, state, context);
+      return calcDerivedValueFromCharacteristic(b, state, rs, context);
     default:
       throw new Error(`Calculating base - invalid base: ${b}`);
   }
@@ -448,6 +452,7 @@ export const calcDerivedValue = (
 const calcBracket = (
   b: DerivedValueBracket,
   state: CharacterState,
+  rs: Ruleset,
   context?: { parent?: string; subject?: Characteristic },
 ): DerivedValueResult => {
   if (b.values.length !== b.operands.length + 1) {
@@ -455,7 +460,7 @@ const calcBracket = (
       `Bracket evaluation failed: ${b.values.length} values but ${b.operands.length} operands.`,
     );
   }
-  const calculatedValues = b.values.map((x) => calcDerivedValue(x, state, context));
+  const calculatedValues = b.values.map((x) => calcDerivedValue(x, state, rs, context));
   const updateTriggers = calculatedValues.reduce(
     (acc, cvr) => [...acc, ...(cvr.updateTriggers || [])],
     [],
@@ -503,12 +508,12 @@ const calcBracket = (
 
 const calcDerivedValueFromCharacteristic = (
   o: DerivedValueCharacteristic,
-  env: Environment,
   state: CharacterState,
+  rs: Ruleset,
   context?: { subject?: Characteristic },
 ): DerivedValueResult => {
-  const charSetting = env.ruleset.characteristics[o.charType];
-  const propSetting = charSetting.selectableValues[o.property];
+  const charSetting = rs.characteristics[o.charType];
+  const propSetting = charSetting.queryableValues[o.property];
   if (propSetting === undefined) {
     throw new Error(`${o.property} is not retrievable value on ${o.charType}`);
   }
@@ -524,10 +529,10 @@ const calcDerivedValueFromCharacteristic = (
   // retrieve the correct attribute, accounting for Parent / Subject linkages.
   const obj = isSubject
     ? context.subject
-    : (_.get(o.key)(state.character[o.charType]) as Characteristic);
+    : (_.get(o.key)(state.character.characteristics[o.charType]) as Characteristic);
 
   if (obj === undefined) {
-    const fb = calcDerivedValue(o.fallback, state, context);
+    const fb = calcDerivedValue(o.fallback, state, rs, context);
     return {
       text: fb.text,
       value: fb.value,
@@ -570,10 +575,15 @@ const calcDerivedValueFromCharacteristic = (
 const calcDerivedStringFromCharacteristic = (
   o: DerivedStringCharacteristic,
   state: CharacterState,
+  rs: Ruleset,
   context?: { subject?: Characteristic },
 ): DerivedStringResult => {
-  const charSetting = characteristicSettings[o.charType];
-  const propSetting = charSetting.selectableValues[o.property];
+  const charSetting = rs.characteristics[o.charType];
+
+  if (charSetting === undefined) {
+    throw new Error(`${o.charType} is not a configured characteristic in ruleset`)
+  }
+  const propSetting = charSetting.queryableValues[o.property];
   if (propSetting === undefined) {
     throw new Error(`${o.property} is not retrievable value on ${o.charType}`);
   }
@@ -589,10 +599,10 @@ const calcDerivedStringFromCharacteristic = (
   // retrieve the correct attribute, accounting for Parent / Subject linkages.
   const obj = isSubject
     ? context.subject
-    : (_.get(o.key)(state.character[o.charType]) as Characteristic);
+    : (_.get(o.key)(state.character.characteristics[o.charType]) as Characteristic);
 
   if (obj === undefined) {
-    const fb = calcDerivedString(o.fallback, state, context);
+    const fb = calcDerivedString(o.fallback, state, rs, context);
     return {
       text: fb.text,
       string: fb.string,
@@ -639,11 +649,11 @@ const calcDerivedStringFromCharacteristic = (
  * @returns 
  */
 export const getCharacteristic = <T extends Characteristic>(key:string, type:enums.CharacteristicType, character: Character): T => {
-  const obj = character[type][key]
+  const obj = character.characteristics[type]?.[key]
   if(obj === undefined) {
     throw new Error(`${type} (${key}) not found.`)
   }
-  return obj;
+  return obj as T;
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
@@ -668,11 +678,12 @@ export const generateID = () => nanoid();
 export const testComparator = (
   c: Comparator,
   state: CharacterState,
+  rs: Ruleset,
   context?: { subject: Characteristic },
 ): boolean => {
   const valueTest = (s: ComparatorValue): boolean => {
-    const derivedA = calcDerivedValue(s.a, state, context).value;
-    const derivedB = calcDerivedValue(s.b, state, context).value;
+    const derivedA = calcDerivedValue(s.a, state, rs, context).value;
+    const derivedB = calcDerivedValue(s.b, state, rs, context).value;
     switch (s.comparator) {
       case '=':
         return derivedA === derivedB;
@@ -688,8 +699,8 @@ export const testComparator = (
   };
 
   const stringTest = (s: ComparatorString): boolean => {
-    const a = calcDerivedString(s.a, state, context).string;
-    const b = calcDerivedString(s.b, state, context).string;
+    const a = calcDerivedString(s.a, state, rs, context).string;
+    const b = calcDerivedString(s.b, state, rs, context).string;
     switch (s.comparator) {
       case 'regex':
         return RegExp(b).test(a);
@@ -706,17 +717,17 @@ export const testComparator = (
     switch (s.operator) {
       case 'OR':
         return s.selectors.reduce(
-          (result, filter) => (result === false ? testComparator(filter, state, context) : true),
+          (result, filter) => (result === false ? testComparator(filter, state, rs, context) : true),
           false,
         );
       case 'AND':
         return s.selectors.reduce(
-          (result, filter) => (result === true ? testComparator(filter, state, context) : false),
+          (result, filter) => (result === true ? testComparator(filter, state, rs, context) : false),
           true,
         );
       case 'NOR':
         return !s.selectors.reduce(
-          (result, filter) => (result === false ? testComparator(filter, state, context) : true),
+          (result, filter) => (result === false ? testComparator(filter, state, rs, context) : true),
           false,
         );
       default:

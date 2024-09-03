@@ -18,6 +18,8 @@ const adjective = [
   'ex-corporate',
   'desperate',
   'anti-corporate',
+  'corporate',
+  'government',
   'gang-banger',
   'ex-gang',
   'criminal',
@@ -163,7 +165,7 @@ export const generate = ():string => {
 
   return `You are ${
     line.length >= 0 ? 'a' : ''
-  } ${line} in Megastructure B7`;
+  } ${line} in Mattok City`;
 };
 
 

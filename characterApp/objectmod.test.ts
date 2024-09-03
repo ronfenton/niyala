@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import _ from 'lodash/fp';
 import * as fixtures from './fixtures';
-import { ObjectModsEventHandler, insert } from './objectmod';
+import { definition as modifierDefinition, createPostProcess } from './objectmod';
 import {
   Environment,
   ComparatorString,
@@ -10,47 +10,59 @@ import {
   ObjectModifier,
   CharacterState,
   CSListenerRecord,
+  Ruleset,
+  Attribute,
 } from './types';
 import { DerivedValueType, CharacteristicType } from './enums';
 import * as enums from './enums';
-import { performAction } from './character';
-import { attributeEventsHandler } from './attribute';
+import { insertObject, performAction } from './character';
+import { definition as attrDefinition } from './attribute';
+
+const demoRuleset: Ruleset = {
+  characteristics: {
+    [enums.CharacteristicType.ATTRIBUTES]: attrDefinition,
+    [enums.CharacteristicType.OBJECT_MODIFIERS]: modifierDefinition,
+  }
+}
 
 const demoCharState: CharacterState = {
   character: fixtures.character({
-    attributes: {
-      Dexterity: fixtures.attribute({
-        name: 'Dexterity',
-        abbreviation: 'DX',
-        lvl: 14,
-        base: 14,
-      }),
-      Health: fixtures.attribute({
-        name: 'Health',
-        abbreviation: 'HT',
-        lvl: 18,
-        base: 18,
-      }),
-      Basic_Speed: fixtures.attribute({
-        name: 'Basic Speed',
-        abbreviation: 'BS',
-        lvl: 16,
-        base: {
-          type: DerivedValueType.BRACKET,
-          values: [
-            2,
-            {
-              type: DerivedValueType.CHARACTERISTIC,
-              charType: CharacteristicType.ATTRIBUTES,
-              property: 'lvl',
-              key: 'Dexterity',
-              fallback: 10,
-            },
-          ],
-          operands: ['+'],
-        },
-      }),
-    },
+    characteristics: {
+      attributes: {
+        Dexterity: fixtures.attribute({
+          name: 'Dexterity',
+          abbreviation: 'DX',
+          lvl: 14,
+          base: 14,
+        }),
+        Health: fixtures.attribute({
+          name: 'Health',
+          abbreviation: 'HT',
+          lvl: 18,
+          base: 18,
+        }),
+        Basic_Speed: fixtures.attribute({
+          name: 'Basic Speed',
+          abbreviation: 'BS',
+          lvl: 16,
+          base: {
+            type: DerivedValueType.BRACKET,
+            values: [
+              2,
+              {
+                type: DerivedValueType.CHARACTERISTIC,
+                charType: CharacteristicType.ATTRIBUTES,
+                property: 'lvl',
+                key: 'Dexterity',
+                fallback: 10,
+              },
+            ],
+            operands: ['+'],
+          },
+        }),
+      },
+      objectMods: {},
+    }
   }),
   registry: [
     {
@@ -87,7 +99,6 @@ const testEnvironmentWithResult = ({
     text: (ctx) => text,
     select: (ctx, opts, def) => select,
   },
-  ruleset: {},
 });
 
 const checkModifierApplied = (
@@ -129,21 +140,19 @@ describe('When creating and inserting a modifier,', () => {
         filter: { type: 'auto', result: true },
       },
     });
-    const insertResult = insert(unfilteredModifier, {
-      keyOverride: 'test_modifier',
-    })(testEnvironmentWithResult({}), { ...demoCharState });
+    const insertResult = insertObject(unfilteredModifier,enums.CharacteristicType.OBJECT_MODIFIERS,{ keyOverride: 'test' })((demoCharState),demoRuleset,fixtures.environment({}))
     it('returns Modifier Created event,', () => expect(insertResult.events).toContainEqual({
       name: enums.CSEventNames.MODIFIER_CREATED,
-      origin: 'test_modifier',
+      origin: 'test',
     }));
     it('returns Modifier Subject Changed event,', () => expect(insertResult.events).toContainEqual({
       name: enums.CSEventNames.MODIFIER_SUBJECTS_CHANGED,
-      origin: 'test_modifier',
+      origin: 'test',
     }));
     it('creates entries in modifier register for Dexterity and Health', () => {
       expect(() => checkModifierApplied(
         unfilteredModifier,
-        'test_modifier',
+        'test',
         insertResult.state,
         ['Dexterity', 'Health', 'Basic_Speed'],
         [],
@@ -151,7 +160,7 @@ describe('When creating and inserting a modifier,', () => {
     });
     it('subject listeners are made and ready to react to event', () => {
       const listeners = getEventListeners(
-        'test_modifier',
+        'test',
         enums.CSEventNames.MODIFIER_SUBJECTS_CHANGED,
         insertResult.state.registry,
       );
@@ -162,26 +171,16 @@ describe('When creating and inserting a modifier,', () => {
         func: 'updateLevel',
       });
     });
-    const propogated = performAction(
-      testEnvironmentWithResult({}),
-      demoCharState,
-      insert(unfilteredModifier, {
-        keyOverride: 'test_modifier',
-      }),
-      {
-        attributes: attributeEventsHandler,
-        objectMods: ObjectModsEventHandler,
-      },
-    );
+    const propogated = performAction(insertObject(unfilteredModifier,enums.CharacteristicType.OBJECT_MODIFIERS,{ keyOverride: 'test' }),demoCharState,demoRuleset,fixtures.environment({}))
     it('after propogation, subject levels are increased by 1', () => {
       expect(
-        propogated.character[enums.CharacteristicType.ATTRIBUTES].Dexterity.lvl,
+        (propogated.character.characteristics[enums.CharacteristicType.ATTRIBUTES].Dexterity as Attribute).lvl,
       ).toMatchObject({ base: 14, modded: 15 });
       expect(
-        propogated.character[enums.CharacteristicType.ATTRIBUTES].Health.lvl,
+        (propogated.character.characteristics[enums.CharacteristicType.ATTRIBUTES].Health as Attribute).lvl,
       ).toMatchObject({ base: 18, modded: 19 });
       expect(
-        propogated.character[enums.CharacteristicType.ATTRIBUTES].Basic_Speed.lvl,
+        (propogated.character.characteristics[enums.CharacteristicType.ATTRIBUTES].Basic_Speed as Attribute).lvl,
       ).toMatchObject({ base: 17, modded: 18 });
     });
   });
@@ -193,21 +192,19 @@ describe('When creating and inserting a modifier,', () => {
         filter: { type: 'auto', result: true },
       },
     });
-    const insertResult = insert(limitedModifier, {
-      keyOverride: 'test_modifier',
-    })(testEnvironmentWithResult({}), { ...demoCharState });
+    const insertResult = insertObject(limitedModifier,enums.CharacteristicType.OBJECT_MODIFIERS,{ keyOverride: 'test' })(demoCharState,demoRuleset,fixtures.environment({}))
     it('returns Modifier Created event,', () => expect(insertResult.events).toContainEqual({
       name: enums.CSEventNames.MODIFIER_CREATED,
-      origin: 'test_modifier',
+      origin: 'test',
     }));
     it('returns Modifier Subject Changed event,', () => expect(insertResult.events).toContainEqual({
       name: enums.CSEventNames.MODIFIER_SUBJECTS_CHANGED,
-      origin: 'test_modifier',
+      origin: 'test',
     }));
     it('only creates entries in modifier register for selected key', () => {
       expect(() => checkModifierApplied(
         limitedModifier,
-        'test_modifier',
+        'test',
         insertResult.state,
         ['Dexterity'],
         ['Health', 'Basic_Speed'],
@@ -215,7 +212,7 @@ describe('When creating and inserting a modifier,', () => {
     });
     it('subject listeners are made and ready to react to event', () => {
       const listeners = getEventListeners(
-        'test_modifier',
+        'test',
         enums.CSEventNames.MODIFIER_SUBJECTS_CHANGED,
         insertResult.state.registry,
       );
@@ -226,23 +223,13 @@ describe('When creating and inserting a modifier,', () => {
         func: 'updateLevel',
       });
     });
-    const propogated = performAction(
-      testEnvironmentWithResult({}),
-      demoCharState,
-      insert(limitedModifier, {
-        keyOverride: 'test_modifier',
-      }),
-      {
-        attributes: attributeEventsHandler,
-        objectMods: ObjectModsEventHandler,
-      },
-    );
+    const propogated = performAction(insertObject(limitedModifier,enums.CharacteristicType.OBJECT_MODIFIERS,{ keyOverride: 'test' }),demoCharState,demoRuleset,fixtures.environment({}))
     it('after propogation, subject levels are increased by 1', () => {
       expect(
-        propogated.character[enums.CharacteristicType.ATTRIBUTES].Dexterity.lvl,
+        (propogated.character.characteristics[enums.CharacteristicType.ATTRIBUTES].Dexterity as Attribute).lvl,
       ).toMatchObject({ base: 14, modded: 15 });
       expect(
-        propogated.character[enums.CharacteristicType.ATTRIBUTES].Basic_Speed
+        (propogated.character.characteristics[enums.CharacteristicType.ATTRIBUTES].Basic_Speed as Attribute)
           .lvl,
       ).toStrictEqual(17);
     });
@@ -265,21 +252,19 @@ describe('When creating and inserting a modifier,', () => {
         },
       },
     });
-    const insertResult = insert(valueFilteredModifier, {
-      keyOverride: 'test_modifier',
-    })(testEnvironmentWithResult({}), { ...demoCharState });
+    const insertResult = insertObject(valueFilteredModifier,enums.CharacteristicType.OBJECT_MODIFIERS,{ keyOverride: 'test' })(demoCharState,demoRuleset,fixtures.environment({}))
     it('returns Modifier Created event,', () => expect(insertResult.events).toContainEqual({
       name: enums.CSEventNames.MODIFIER_CREATED,
-      origin: 'test_modifier',
+      origin: 'test',
     }));
     it('returns Modifier Subject Changed event,', () => expect(insertResult.events).toContainEqual({
       name: enums.CSEventNames.MODIFIER_SUBJECTS_CHANGED,
-      origin: 'test_modifier',
+      origin: 'test',
     }));
     it('only creates entries in modifier register for objects matching criteria', () => {
       expect(() => checkModifierApplied(
         valueFilteredModifier,
-        'test_modifier',
+        'test',
         insertResult.state,
         ['Health'],
         ['Dexterity', 'Basic_Speed'],
@@ -287,7 +272,7 @@ describe('When creating and inserting a modifier,', () => {
     });
     it('subject listeners are made and ready to react to event', () => {
       const listeners = getEventListeners(
-        'test_modifier',
+        'test',
         enums.CSEventNames.MODIFIER_SUBJECTS_CHANGED,
         insertResult.state.registry,
       );
@@ -298,20 +283,10 @@ describe('When creating and inserting a modifier,', () => {
         func: 'updateLevel',
       });
     });
-    const propogated = performAction(
-      testEnvironmentWithResult({}),
-      demoCharState,
-      insert(valueFilteredModifier, {
-        keyOverride: 'test_modifier',
-      }),
-      {
-        attributes: attributeEventsHandler,
-        objectMods: ObjectModsEventHandler,
-      },
-    );
+    const propogated = performAction(insertObject(valueFilteredModifier,enums.CharacteristicType.OBJECT_MODIFIERS,{ keyOverride: 'test' }),demoCharState,demoRuleset,fixtures.environment({}))
     it('after propogation, subject levels are increased by 1', () => {
       expect(
-        propogated.character[enums.CharacteristicType.ATTRIBUTES].Health.lvl,
+        (propogated.character.characteristics[enums.CharacteristicType.ATTRIBUTES].Health as Attribute).lvl,
       ).toMatchObject({ base: 18, modded: 19 });
     });
   });
@@ -359,21 +334,19 @@ describe('When creating and inserting a modifier,', () => {
         filter: comparator,
       },
     });
-    const insertResult = insert(valueFilteredModifier, {
-      keyOverride: 'test_modifier',
-    })(testEnvironmentWithResult({}), { ...demoCharState });
+    const insertResult = insertObject(valueFilteredModifier,enums.CharacteristicType.OBJECT_MODIFIERS,{ keyOverride: 'test' })(demoCharState,demoRuleset,fixtures.environment({}))
     it('returns Modifier Created event,', () => expect(insertResult.events).toContainEqual({
       name: enums.CSEventNames.MODIFIER_CREATED,
-      origin: 'test_modifier',
+      origin: 'test',
     }));
     it('returns Modifier Subject Changed event,', () => expect(insertResult.events).toContainEqual({
       name: enums.CSEventNames.MODIFIER_SUBJECTS_CHANGED,
-      origin: 'test_modifier',
+      origin: 'test',
     }));
     it('only creates entries in modifier register for objects matching criteria', () => {
       expect(() => checkModifierApplied(
         valueFilteredModifier,
-        'test_modifier',
+        'test',
         insertResult.state,
         ['Dexterity', 'Basic_Speed'],
         ['Health'],
@@ -381,7 +354,7 @@ describe('When creating and inserting a modifier,', () => {
     });
     it('subject listeners are made and ready to react to event', () => {
       const listeners = getEventListeners(
-        'test_modifier',
+        'test',
         enums.CSEventNames.MODIFIER_SUBJECTS_CHANGED,
         insertResult.state.registry,
       );
@@ -392,23 +365,13 @@ describe('When creating and inserting a modifier,', () => {
         func: 'updateLevel',
       });
     });
-    const propogated = performAction(
-      testEnvironmentWithResult({}),
-      demoCharState,
-      insert(valueFilteredModifier, {
-        keyOverride: 'test_modifier',
-      }),
-      {
-        attributes: attributeEventsHandler,
-        objectMods: ObjectModsEventHandler,
-      },
-    );
+    const propogated = performAction(insertObject(valueFilteredModifier,enums.CharacteristicType.OBJECT_MODIFIERS,{ keyOverride: 'test' }),demoCharState,demoRuleset,fixtures.environment({}))
     it('after propogation, subject levels are increased by 1', () => {
       expect(
-        propogated.character[enums.CharacteristicType.ATTRIBUTES].Dexterity.lvl,
+        (propogated.character.characteristics[enums.CharacteristicType.ATTRIBUTES].Dexterity as Attribute).lvl,
       ).toMatchObject({ base: 14, modded: 15 });
       expect(
-        propogated.character[enums.CharacteristicType.ATTRIBUTES].Basic_Speed.lvl,
+        (propogated.character.characteristics[enums.CharacteristicType.ATTRIBUTES].Basic_Speed as Attribute).lvl,
       ).toMatchObject({ base: 17, modded: 18 });
     });
   });

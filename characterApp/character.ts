@@ -9,6 +9,7 @@ import type {
   InsertOptions,
   Ruleset,
   CSEventAction,
+  CSEventResponse,
 } from './types';
 import { getListenersForEvent } from './eventSystem';
 import { CharacteristicType } from './enums';
@@ -29,9 +30,11 @@ const RecalculateAll = (s: CharacterState): CharacterState => s;
  * @param opts 
  * @returns 
  */
-export const insertObject = (charObject:Characteristic, charType: CharacteristicType, opts: InsertOptions): CSAction => (env:Environment, state:CharacterState, ruleset:Ruleset) => {
+export const insertObject = (charObject:Characteristic, charType: CharacteristicType, opts: InsertOptions): CSAction => (state: CharacterState, rs: Ruleset, env:Environment) => {
   const { character, registry } = state;
-  const charSetting = ruleset.characteristics[charType]
+  const charSetting = rs.characteristics[charType]
+
+  console.info(`Insert Object called`)
 
   // use key override or ruleset-defined key generation for object type.
   const key = opts.keyOverride || charSetting.functions.generateKey(charObject);
@@ -39,7 +42,7 @@ export const insertObject = (charObject:Characteristic, charType: Characteristic
     const inserted = _.set(['character','characteristics',charType,key],charObject)(state)
 
     const postProcessed = charSetting.functions.create !== undefined 
-      ? charSetting.functions.create(key,charObject)(env,inserted,ruleset)
+      ? charSetting.functions.create(key,charObject)(inserted,rs,env)
       : { state, events: [{
         name: charSetting.createEvent,
         origin: key,
@@ -63,7 +66,7 @@ export const insertObject = (charObject:Characteristic, charType: Characteristic
       const inserted = _.set(['character','characteristics',charType,key],charObject)(state)
   
       const postProcessed = charSetting.functions.create !== undefined 
-        ? charSetting.functions.create(key,charObject)(env,inserted,ruleset)
+        ? charSetting.functions.create(key,charObject)(inserted,rs,env)
         : { state, events: [{
           name: charSetting.createEvent,
           origin: key,
@@ -84,10 +87,9 @@ export const insertObject = (charObject:Characteristic, charType: Characteristic
 
 const eventProcessor = (
   events: CSEvent[],
-  env: Environment,
-  ruleset: Ruleset,
   state: CharacterState,
-  actionMap: EventActionMap,
+  rs: Ruleset,
+  env: Environment,
   pass: number,
 ): CharacterState => {
   if (events.length === 0) {
@@ -103,15 +105,16 @@ const eventProcessor = (
 
       const eventProcessedResult = listeners.reduce(
         (eventProcessedAccumulator, listener) => {
-          const eventAction:CSEventAction = actionMap[listener.listeningCharType][
+          //const eventAction:CSEventAction = actionMap[listener.listeningCharType][
+          const eventAction:CSEventResponse = rs.characteristics[listener.listeningCharType].eventResponses[
             listener.funcID
           ]
           const actionResult = eventAction(
-            env,
-            ruleset,
-            eventProcessedAccumulator.state,
             listener.listeningCharKey,
-            event.data,
+            event)(
+            eventProcessedAccumulator.state,
+            rs,
+            env,
           );
           return {
             state: actionResult.state,
@@ -142,21 +145,19 @@ const eventProcessor = (
 
   return eventProcessor(
     allProcessedResult.newEvents,
-    env,
-    ruleset,
     allProcessedResult.state,
-    actionMap,
+    rs,
+    env,
     pass + 1,
   );
 };
 
 export const performAction = (
-  env: Environment,
-  state: CharacterState,
-  ruleset: Ruleset,
   action: CSAction,
-  eventActionMap: EventActionMap,
+  state: CharacterState,
+  rs: Ruleset,
+  env: Environment,
 ): CharacterState => {
-  const result = action(env, state,ruleset);
-  return eventProcessor(result.events, env, ruleset, result.state, eventActionMap, 0);
+  const result = action(state, rs, env);
+  return eventProcessor(result.events, result.state, rs, env, 0);
 };

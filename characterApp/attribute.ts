@@ -8,6 +8,10 @@ import type {
   InsertOptions,
   CSTriggerRecord,
   CharacteristicDefinition,
+  Ruleset,
+  CSActionResult,
+  CharacteristicEventResponseMap,
+  CSEventResponse,
 } from './types';
 import {
   calcDerivedValue,
@@ -24,17 +28,17 @@ import { updateRegistry } from './eventSystem';
 const calculateLevel = (
   a: Attribute,
   k: string,
-  env: Environment,
   state: CharacterState,
+  rs: Ruleset,
 ): { a: Attribute; baseListeners: CSTriggerRecord[] } => {
-  const Base = calcDerivedValue(a.base, state);
+  const Base = calcDerivedValue(a.base, state, rs);
   const BoughtLevels = costMapPointsToLevel(
     a.levelMap,
     getModdedValue(a.points),
   );
   const Level = Base.value + BoughtLevels + a.lvlMod;
   const mods = getMods(CharacteristicType.ATTRIBUTES, k, 'lvl', state);
-  const ModdedLevel = calcModdedValue(a, Level, mods, state);
+  const ModdedLevel = calcModdedValue(a, Level, mods, state, rs);
   const newAttr = {
     ...a,
     lvlBase: Base.value,
@@ -47,14 +51,15 @@ const calculateLevel = (
   };
 };
 
-export const updateLevel = (key: string): CSAction => (env: Environment, state: CharacterState) => {
+export const updateLevel = (key: string): CSAction => (state: CharacterState, rs: Ruleset, _env:Environment) => {
+  console.info(`Attribute Update Level called`)
   const { character, registry } = state;
   const a = getCharacteristic<Attribute>(key,CharacteristicType.ATTRIBUTES,character)
-  const calced = calculateLevel(a, key, env, state);
+  const calced = calculateLevel(a, key, state, rs);
   return {
     state: {
       character: _.set(
-        [CharacteristicType.ATTRIBUTES, key],
+        ['characteristics',CharacteristicType.ATTRIBUTES, key],
         calced.a,
       )(character),
       registry: updateRegistry(
@@ -78,107 +83,101 @@ export const updateLevel = (key: string): CSAction => (env: Environment, state: 
   };
 };
 
-export const insert = (k:string, a:Attribute): CSAction => (env:Environment, state: CharacterState) => {
-  const { character, registry } = state;
-  const calced = calculateLevel(a, k, env, state);
-  return {
-    state: {
-      character: _.set(`attributes.${k}`, calced.a)(character),
-      registry: updateRegistry(
-        registry,
-        calced.baseListeners,
-        'updateLevel',
-        `attributes.${k}`,
-        CharacteristicType.ATTRIBUTES,
-      ),
-    },
-    events: [
-      {
-        name: CSEventNames.ATTRIBUTE_CREATED,
-        origin: k,
-      },
-    ],
-  };
-}
+// export const insert = (k:string, a:Attribute): CSAction => (state: CharacterState, rs: Ruleset, env:Environment) => {
+//   const { character, registry } = state;
+//   const calced = calculateLevel(a, k, state, rs);
+//   return {
+//     state: {
+//       character: _.set(`attributes.${k}`, calced.a)(character),
+//       registry: updateRegistry(
+//         registry,
+//         calced.baseListeners,
+//         'updateLevel',
+//         `attributes.${k}`,
+//         CharacteristicType.ATTRIBUTES,
+//       ),
+//     },
+//     events: [
+//       {
+//         name: CSEventNames.ATTRIBUTE_CREATED,
+//         origin: k,
+//       },
+//     ],
+//   };
+// }
 
-export const insertXX = (a: Attribute, opts: InsertOptions): CSAction => (env: Environment, state: CharacterState) => {
-  const { character, registry } = state;
-  const defaultKey = stringToValidKey(a.name);
-  if (character.attributes[defaultKey] !== undefined) {
-    const method = opts.conflictMethod === 'prompt'
-      ? env.prompter.select(
-        {
-          title: '',
-          description: '',
-          permitCancel: false,
-        },
-        [],
-        'overwrite',
-      )
-      : opts.conflictMethod;
-    switch (method) {
-      case 'overwrite': {
-        const calced = calculateLevel(a, defaultKey, env, state);
-        return {
-          state: {
-            character: _.set(`attributes.${defaultKey}`, calced.a)(character),
-            registry: updateRegistry(
-              registry,
-              calced.baseListeners,
-              'updateLevel',
-              defaultKey,
-              CharacteristicType.ATTRIBUTES,
-            ),
-          },
-          events: [
-            {
-              name: CSEventNames.ATTRIBUTE_LEVEL_CHANGED,
-              origin: defaultKey,
-            },
-          ],
-        };
-      }
-      case 'ignore':
-        return { state: { character, registry }, events: [] };
-      default:
-        throw new Error(`Unhandled duplicate attribute on insert ${a.name}`);
-    }
-  }
-  const calced = calculateLevel(a, defaultKey, env, state);
-  return {
-    state: {
-      character: _.set(`attributes.${defaultKey}`, calced.a)(character),
-      registry: updateRegistry(
-        registry,
-        calced.baseListeners,
-        'updateLevel',
-        `attributes.${defaultKey}`,
-        CharacteristicType.ATTRIBUTES,
-      ),
-    },
-    events: [
-      {
-        name: CSEventNames.ATTRIBUTE_CREATED,
-        origin: defaultKey,
-      },
-    ],
-  };
-};
-
-export const attributeEventsHandler = {
-  updateLevel: (
-    env: Environment,
-    state: CharacterState,
-    key: string,
-    _event: CSEvent,
-  ) => updateLevel(key)(env, state),
-};
+// export const insertXX = (a: Attribute, opts: InsertOptions): CSAction => (state: CharacterState, rs: Ruleset, env:Environment) => {
+//   const { character, registry } = state;
+//   const defaultKey = stringToValidKey(a.name);
+//   if (character.characteristics.attributes[defaultKey] !== undefined) {
+//     const method = opts.conflictMethod === 'prompt'
+//       ? env.prompter.select(
+//         {
+//           title: '',
+//           description: '',
+//           permitCancel: false,
+//         },
+//         [],
+//         'overwrite',
+//       )
+//       : opts.conflictMethod;
+//     switch (method) {
+//       case 'overwrite': {
+//         const calced = calculateLevel(a, defaultKey, state, rs);
+//         return {
+//           state: {
+//             character: _.set(`attributes.${defaultKey}`, calced.a)(character),
+//             registry: updateRegistry(
+//               registry,
+//               calced.baseListeners,
+//               'updateLevel',
+//               defaultKey,
+//               CharacteristicType.ATTRIBUTES,
+//             ),
+//           },
+//           events: [
+//             {
+//               name: CSEventNames.ATTRIBUTE_LEVEL_CHANGED,
+//               origin: defaultKey,
+//             },
+//           ],
+//         };
+//       }
+//       case 'ignore':
+//         return { state: { character, registry }, events: [] };
+//       default:
+//         throw new Error(`Unhandled duplicate attribute on insert ${a.name}`);
+//     }
+//   }
+//   const calced = calculateLevel(a, defaultKey, state, rs);
+//   return {
+//     state: {
+//       character: _.set(`attributes.${defaultKey}`, calced.a)(character),
+//       registry: updateRegistry(
+//         registry,
+//         calced.baseListeners,
+//         'updateLevel',
+//         `attributes.${defaultKey}`,
+//         CharacteristicType.ATTRIBUTES,
+//       ),
+//     },
+//     events: [
+//       {
+//         name: CSEventNames.ATTRIBUTE_CREATED,
+//         origin: defaultKey,
+//       },
+//     ],
+//   };
+// };
 
 export const definition: CharacteristicDefinition = {
   key: CharacteristicType.ATTRIBUTES,
   functions: {
-    create: insert,
     generateKey: (o:Attribute) => o.name,
+    create: updateLevel
+  },
+  eventResponses: {
+    updateLevel: (path: string, _event: CSEvent) => updateLevel(path),
   },
   createEvent: CSEventNames.ATTRIBUTE_CREATED,
   deleteEvent: CSEventNames.ATTRIBUTE_DELETED,
@@ -189,13 +188,15 @@ export const definition: CharacteristicDefinition = {
       displayName: 'Level',
     },
   },
-  selectableValues: {
+  queryableValues: {
     lvl: {
+      displayName: 'Level',
       type: 'moddableValue',
       changeEvent: CSEventNames.ATTRIBUTE_LEVEL_CHANGED,
       stringFunc: (obj: Attribute):string => obj.abbreviation || obj.name,
     },
     name: {
+      displayName: 'Name',
       type: 'string',
       changeEvent: CSEventNames.ATTRIBUTE_NAME_CHANGED,
       stringFunc: (obj: Attribute):string => obj.name,

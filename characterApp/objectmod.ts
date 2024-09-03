@@ -8,17 +8,21 @@ import type {
   CSTriggerRecord,
   CSListenerRecord,
   CSEvent,
-  CharacteristicEventActionMap,
-  Characteristic,
+  CharacteristicEventResponseMap,
+  Ruleset,
+  CSEventResponse,
+  CharacteristicDefinition,
 } from './types';
 import {
   generateID,
+  getCharacteristic,
   getComparatorEvents,
   testComparator,
 } from './utility';
 import * as enums from './enums';
 import { updateRegistry as updateRegistry } from './eventSystem';
 
+// Updates registry with various registry events for the mod to update or check for new candidates.
 const objectModRegistryHelper = (
   omKey: string,
   registry: CSListenerRecord[],
@@ -28,36 +32,44 @@ const objectModRegistryHelper = (
   const a = updateRegistry(
     registry,
     filterChange,
-    'reevaluateSubjects',
+    'reevaluateModifier',
     omKey,
     enums.CharacteristicType.OBJECT_MODIFIERS,
   );
   const b = updateRegistry(
     a,
     filterSubject,
-    'testPossibleSubject',
+    'testSubject',
     omKey,
     enums.CharacteristicType.OBJECT_MODIFIERS,
   );
   return b;
 };
 
+/**
+ * Returns all triggers that will either provoke the filter itself to change 
+ * (filter change) or that might make a subject eligible (filter subject)
+ * @param o 
+ * @param state 
+ * @param rs 
+ * @returns 
+ */
 const evaluateTriggers = (
   o: ObjectModifier,
-  env: Environment,
   state: CharacterState,
+  rs: Ruleset,
 ): {
   filterSubjectTriggers: CSTriggerRecord[];
   filterChangeTriggers: CSTriggerRecord[];
 } => {
-  const filterTriggers = getComparatorEvents(o.selector.filter, state);
+  const filterTriggers = getComparatorEvents(o.selector.filter, state, rs);
   switch (o.effect.effectType) {
     case enums.ModifierEffectType.VALUE:
       return {
         filterSubjectTriggers: [
           ...filterTriggers.subjectEvents,
           {
-            eventName: env.ruleset.characteristics[o.selector.charType].createEvent,
+            eventName: rs.characteristics[o.selector.charType].createEvent,
           },
         ],
         filterChangeTriggers: filterTriggers.externalEvents,
@@ -67,7 +79,7 @@ const evaluateTriggers = (
         filterSubjectTriggers: [
           ...filterTriggers.subjectEvents,
           {
-            eventName: env.ruleset.characteristics[o.selector.charType].createEvent,
+            eventName: rs.characteristics[o.selector.charType].createEvent,
           },
         ],
         filterChangeTriggers: filterTriggers.externalEvents,
@@ -83,8 +95,8 @@ const unsubscribe = (
   characteristicKey: string,
   modifierKey: string,
   subjectProperty: string,
-  env: Environment,
   state: CharacterState,
+  rs: Ruleset,
 ): CharacterState => {
   const existingModifiers = state.character.objectModifierRegister?.[characteristicType]?.[
     characteristicKey
@@ -109,7 +121,7 @@ const unsubscribe = (
         listeningCharKey: characteristicKey,
         listeningCharType: characteristicType,
         funcID:
-          env.ruleset.characteristics[characteristicType].moddableValues[
+          rs.characteristics[characteristicType].moddableValues[
             subjectProperty
           ].funcID,
       },
@@ -123,11 +135,11 @@ const subscribe = (
   characteristicKey: string,
   modifierKey: string,
   subjectProperty: string,
-  env: Environment,
   state: CharacterState,
+  rs: Ruleset,
 ): CharacterState => {
   if (
-      env.ruleset.characteristics[characteristicType].moddableValues[
+      rs.characteristics[characteristicType].moddableValues[
       subjectProperty
     ] === undefined
   ) {
@@ -158,7 +170,7 @@ const subscribe = (
         listeningCharKey: characteristicKey,
         listeningCharType: characteristicType,
         funcID:
-          env.ruleset.characteristics[characteristicType].moddableValues[
+          rs.characteristics[characteristicType].moddableValues[
             subjectProperty
           ].funcID,
       },
@@ -166,12 +178,13 @@ const subscribe = (
   };
 };
 
+
 const updateSubjectSubscription = (
   om: ObjectModifier,
   modifierKey: string,
-  env: Environment,
-  state: CharacterState,
   charKeys: string[],
+  state: CharacterState,
+  rs: Ruleset,
 ): CharacterState => {
   const newState = charKeys.reduce((accState, characteristicKey) => {
     if ((om.selector.excludeKeys || []).includes(characteristicKey)) {
@@ -180,8 +193,8 @@ const updateSubjectSubscription = (
         characteristicKey,
         modifierKey,
         om.effect.targetProp,
-        env,
         accState,
+        rs,
       );
     }
     if (
@@ -193,8 +206,8 @@ const updateSubjectSubscription = (
         characteristicKey,
         modifierKey,
         om.effect.targetProp,
-        env,
         accState,
+        rs,
       );
     }
     if (om.selector.filter === undefined) {
@@ -203,19 +216,19 @@ const updateSubjectSubscription = (
         characteristicKey,
         modifierKey,
         om.effect.targetProp,
-        env,
         accState,
+        rs,
       );
     }
-    const obj = state.character[om.selector.charType][characteristicKey];
-    if (testComparator(om.selector.filter, accState, { subject: obj })) {
+    const obj = state.character.characteristics[om.selector.charType][characteristicKey];
+    if (testComparator(om.selector.filter, accState, rs, { subject: obj })) {
       return subscribe(
         om.selector.charType,
         characteristicKey,
         modifierKey,
         om.effect.targetProp,
-        env,
         accState,
+        rs,
       );
     }
     return unsubscribe(
@@ -223,8 +236,8 @@ const updateSubjectSubscription = (
       characteristicKey,
       modifierKey,
       om.effect.targetProp,
-      env,
       accState,
+      rs,
     );
   }, state);
   return newState;
@@ -233,24 +246,19 @@ const updateSubjectSubscription = (
 const updateSubjects = (
   om: ObjectModifier,
   modifierKey: string,
-  env: Environment,
   state: CharacterState,
+  rs: Ruleset,
 ) => {
   const candidates = om.selector.limitKeys !== undefined && om.selector.limitKeys.length !== 0
     ? om.selector.limitKeys
-    : Object.keys(state.character[om.selector.charType]);
+    : Object.keys(state.character.characteristics[om.selector.charType]);
 
-  return updateSubjectSubscription(om, modifierKey, env, state, candidates);
+  return updateSubjectSubscription(om, modifierKey, candidates, state, rs);
 };
 
-const reevaluateSubjects = (
-  env: Environment,
-  state: CharacterState,
-  key: string,
-  event: CSEvent,
-): { state: CharacterState; events: CSEvent[] } => {
-  const om = state.character[enums.CharacteristicType.OBJECT_MODIFIERS][key];
-  const triggers = evaluateTriggers(om, env, state);
+const reevaluateModifier:CSEventResponse = (key: string):CSAction => (state: CharacterState, rs: Ruleset, env: Environment) => {
+  const om = getCharacteristic<ObjectModifier>(key,enums.CharacteristicType.OBJECT_MODIFIERS,state.character);
+  const triggers = evaluateTriggers(om, state, rs);
   const registryUpd = _.set(
     'registry',
     objectModRegistryHelper(
@@ -261,7 +269,55 @@ const reevaluateSubjects = (
     ),
   )(state);
   return {
-    state: updateSubjects(om, key, env, registryUpd),
+    state: updateSubjects(om, key, registryUpd, rs),
+    events: [
+      {
+        name: enums.CSEventNames.MODIFIER_SUBJECTS_CHANGED,
+        origin: key,
+      },
+    ],
+  };
+}
+
+const reevaluateSubjects = (
+  key: string,
+  event: CSEvent,
+  state: CharacterState,
+  rs: Ruleset,
+  env: Environment,
+): { state: CharacterState; events: CSEvent[] } => {
+  const om = state.character[enums.CharacteristicType.OBJECT_MODIFIERS][key];
+  const triggers = evaluateTriggers(om, state, rs);
+  const registryUpd = _.set(
+    'registry',
+    objectModRegistryHelper(
+      key,
+      state.registry,
+      triggers.filterChangeTriggers,
+      triggers.filterSubjectTriggers,
+    ),
+  )(state);
+  return {
+    state: updateSubjects(om, key, registryUpd, rs),
+    events: [
+      {
+        name: enums.CSEventNames.MODIFIER_SUBJECTS_CHANGED,
+        origin: key,
+      },
+    ],
+  };
+};
+
+const testSubject:CSEventResponse = (
+  key: string,
+  event: CSEvent):CSAction => (
+  state: CharacterState,
+  rs: Ruleset,
+  env: Environment,
+): { state: CharacterState; events: CSEvent[] } => {
+  const om = state.character[enums.CharacteristicType.OBJECT_MODIFIERS][key];
+  return {
+    state: updateSubjectSubscription(om, key, [event.origin], state, rs),
     events: [
       {
         name: enums.CSEventNames.MODIFIER_SUBJECTS_CHANGED,
@@ -272,14 +328,15 @@ const reevaluateSubjects = (
 };
 
 const testPossibleSubject = (
-  env: Environment,
-  state: CharacterState,
   key: string,
   event: CSEvent,
+  state: CharacterState,
+  rs: Ruleset,
+  env: Environment,
 ): { state: CharacterState; events: CSEvent[] } => {
   const om = state.character[enums.CharacteristicType.OBJECT_MODIFIERS][key];
   return {
-    state: updateSubjectSubscription(om, key, env, state, [event.origin]),
+    state: updateSubjectSubscription(om, key, [event.origin], state, rs),
     events: [
       {
         name: enums.CSEventNames.MODIFIER_SUBJECTS_CHANGED,
@@ -289,8 +346,8 @@ const testPossibleSubject = (
   };
 };
 
-export const insert = (k: string, om: ObjectModifier): CSAction => (env:Environment, state:CharacterState) => {
-  const triggers = evaluateTriggers(om, env, state);
+export const createPostProcess = (k: string, om: ObjectModifier): CSAction => (state: CharacterState, rs: Ruleset, env: Environment) => {
+  const triggers = evaluateTriggers(om, state, rs);
   const registryUpd = _.set(
     'registry',
     objectModRegistryHelper(
@@ -301,7 +358,7 @@ export const insert = (k: string, om: ObjectModifier): CSAction => (env:Environm
     ),
   )(state);
   return {
-    state: updateSubjects(om, k, env, registryUpd),
+    state: updateSubjects(om, k, registryUpd, rs),
     events: [
       {
         name: enums.CSEventNames.MODIFIER_CREATED,
@@ -315,13 +372,13 @@ export const insert = (k: string, om: ObjectModifier): CSAction => (env:Environm
   };
 }
 
-export const insertxxx = (om: ObjectModifier, opts: InsertOptions): CSAction => (env: Environment, state: CharacterState) => {
+export const insertxxx = (om: ObjectModifier, opts: InsertOptions): CSAction => (state: CharacterState, rs: Ruleset, env: Environment) => {
   const newKey = opts.keyOverride || generateID();
   const inserted = _.set(
     `character.${enums.CharacteristicType.OBJECT_MODIFIERS}.${newKey}`,
     om,
   )(state);
-  const triggers = evaluateTriggers(om, env, inserted);
+  const triggers = evaluateTriggers(om, inserted, rs);
   const registryUpd = _.set(
     'registry',
     objectModRegistryHelper(
@@ -332,7 +389,7 @@ export const insertxxx = (om: ObjectModifier, opts: InsertOptions): CSAction => 
     ),
   )(inserted);
   return {
-    state: updateSubjects(om, newKey, env, registryUpd),
+    state: updateSubjects(om, newKey, registryUpd, rs),
     events: [
       {
         name: enums.CSEventNames.MODIFIER_CREATED,
@@ -346,7 +403,7 @@ export const insertxxx = (om: ObjectModifier, opts: InsertOptions): CSAction => 
   };
 };
 
-export const editFilter = (om: ObjectModifier, key: string): CSAction => (env: Environment, state: CharacterState) => {
+export const editFilter = (om: ObjectModifier, key: string): CSAction => (state: CharacterState, rs: Ruleset, env: Environment) => {
   const oldOM = state.character[enums.CharacteristicType.OBJECT_MODIFIERS][key];
   const [oldLimits, newLimits] = [
     oldOM.selector.limitKeys || [],
@@ -356,7 +413,7 @@ export const editFilter = (om: ObjectModifier, key: string): CSAction => (env: E
       && oldLimits.every((x) => newLimits.includes(x));
   if (sameLimits) {
     return {
-      state: updateSubjectSubscription(om, key, env, state, newLimits),
+      state: updateSubjectSubscription(om, key, newLimits, state, rs),
       events: [
         {
           name: enums.CSEventNames.MODIFIER_SUBJECTS_CHANGED,
@@ -369,12 +426,12 @@ export const editFilter = (om: ObjectModifier, key: string): CSAction => (env: E
     state: updateSubjectSubscription(
       om,
       key,
-      env,
+      Object.keys(state.character[om.selector.charType]),
       _.set(
         ['character', enums.CharacteristicType.OBJECT_MODIFIERS, key],
         om,
       )(state),
-      Object.keys(state.character[om.selector.charType]),
+      rs,
     ),
     events: [
       {
@@ -385,7 +442,23 @@ export const editFilter = (om: ObjectModifier, key: string): CSAction => (env: E
   };
 };
 
-export const ObjectModsEventHandler: CharacteristicEventActionMap = {
-  reevaluateSubjects,
-  testPossibleSubject,
+export const ObjectModsEventHandler: CharacteristicEventResponseMap = {
+  reevaluateModifier,
+  testSubject,
 };
+
+export const definition: CharacteristicDefinition = {
+  key: enums.CharacteristicType.OBJECT_MODIFIERS,
+  functions: {
+    create: createPostProcess,
+    generateKey: generateID,
+  },
+  eventResponses: {
+    reevaluateModifier,
+    testSubject,
+  },
+  createEvent: enums.CSEventNames.MODIFIER_CREATED,
+  deleteEvent: enums.CSEventNames.MODIFIER_DELETED,
+  moddableValues: {},
+  queryableValues: {}
+}

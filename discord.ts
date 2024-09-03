@@ -105,50 +105,57 @@ const handleDiscordActions2 = async (i:Interaction) => {
   if(!i.isChatInputCommand()) {
     return;
   }
-  if(i.commandName === 'debug' && i.options.getSubcommand(true) === 'print') {
-    const data = printCSDebug()
-    i.reply(`\`\`\`js\n${data}\`\`\``)
-    return;
-  }
-  if(i.commandName === 'character') {
-    const actionID = i.options.getSubcommand(true)
-    switch (actionID) {
-      case `insert-attribute`: {
-        const name = i.options.getString('name')
-        const base = i.options.getNumber('base')
-        const perLvl = i.options.getNumber('perlvl')
-        const charID = i.options.getString('char_id')
-        const newAttr: Partial<Attribute> = {
-          name,
-          levelMap: {perLvl},
-          base
+  try {
+    if(i.commandName === 'debug' && i.options.getSubcommand(true) === 'print') {
+      const data = await printCSDebug()
+      i.editReply(`\`\`\`js\n${data}\`\`\``)
+      return;
+    }
+    if(i.commandName === 'character') {
+      const actionID = i.options.getSubcommand(true)
+      switch (actionID) {
+        case `insert-attribute`: {
+          const name = i.options.getString('name')
+          const base = i.options.getNumber('base')
+          const perLvl = i.options.getNumber('perlvl')
+          const charID = i.options.getString('char_id')
+          const newAttr: Partial<Attribute> = {
+            name,
+            levelMap: {perLvl},
+            base
+          }
+          const resp = handleCSAction(charID,'',servEnv.prompter,actionID,newAttr)
+          i.editReply(resp)
+          break;
         }
-        const resp = handleCSAction(charID,'',servEnv.prompter,actionID,newAttr)
-        i.reply(resp)
-        break;
-      }
-      case 'create': {
-        const charID = i.options.getString('id')
-        const resp = handleCSAction(charID || 'temp','',servEnv.prompter,'create',null)
-        i.reply(resp)
-        break;
-      }
-      case 'get': {
-        const charID = i.options.getString('id')
-        const char = getByID(charID)
-        i.reply({embeds:[CharStateToEmbed(char.state.character)]})
-        break;
+        case 'create': {
+          const charID = i.options.getString('id')
+          const resp = handleCSAction(charID || 'temp','',servEnv.prompter,'create',null)
+          i.editReply(resp)
+          break;
+        }
+        case 'get': {
+          const charID = i.options.getString('id')
+          const char = getByID(charID)
+          i.editReply({embeds:[CharStateToEmbed(char.state.character)]})
+          break;
+        }
       }
     }
+  } catch (e) {
+    i.editReply(`Breaking error: ${e}`)
   }
 }
 
 const handleInteraction = async (i:Interaction) => {
   if (!i.isChatInputCommand()) { return; }
 
+  await i.deferReply();
+
+
   switch(i.commandName) {
     case "random-background": 
-      await i.reply(generate())
+      await i.editReply(generate())
       break;
     case 'debug': 
       await handleDiscordActions2(i);
@@ -157,7 +164,7 @@ const handleInteraction = async (i:Interaction) => {
       await handleDiscordActions2(i);
       break;
     default:
-      await i.reply(`Unhandled command: ${i.commandName}`)
+      await i.editReply(`Unhandled command: ${i.commandName}`)
       break;
   }
 }
@@ -175,7 +182,7 @@ const CharStateToEmbed = (c:Character) => {
     .setTitle(c.id)
     .setDescription('Character info for your character')
     .addFields(
-      { name: 'Attributes' , value : Object.entries(c.attributes).map(([,a]) => `${a.abbreviation || a.name}: ${a.lvl}`).join(`\n`)}
+      { name: 'Attributes' , value : Object.entries(c.characteristics.attributes).map(([,a]:[undefined,Attribute]) => `${a.abbreviation || a.name}: ${a.lvl}`).join(`\n`)}
     )
   return embed
 }
@@ -212,5 +219,4 @@ const servEnv:Environment = {
       throw new Error('Function not implemented.');
     }
   },
-  ruleset: undefined
 }
