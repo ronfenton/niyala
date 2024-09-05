@@ -5,7 +5,7 @@ import getConfig from 'next/config';
 import { Type as PageType } from '../collections/Page';
 import NotFound from '../components/NotFound';
 import Head from '../components/Head';
-import classes from '../css/page.module.css';
+import classes from '../css/page.module.scss';
 import RenderBlocks from '../components/RenderBlocks';
 
 const { publicRuntimeConfig: { SERVER_URL } } = getConfig();
@@ -15,6 +15,24 @@ export type Props = {
   statusCode: number
 }
 
+const Layout: React.FC<Props> = (props) => {
+  return (
+    <main>
+      <Head>
+
+      </Head>
+      <header>
+        
+      </header>
+      { /* content */ }
+      <footer>
+
+      </footer>
+    </main>
+  )
+}
+
+
 const Page: React.FC<Props> = (props) => {
   const { page } = props;
 
@@ -23,7 +41,7 @@ const Page: React.FC<Props> = (props) => {
   }
 
   return (
-    <main className={classes.page}>
+    <main className={classes.page + ' retropunk themed'}>
       <Head
         title={page.meta?.title || page.title}
         description={page.meta?.description}
@@ -42,16 +60,7 @@ const Page: React.FC<Props> = (props) => {
       </div>
       <RenderBlocks layout={page.layout} />
       <footer className={classes.footer}>
-        <hr />
-        NextJS + Payload Server Boilerplate made by
-        {' '}
-        <a
-          href="https://payloadcms.com"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Payload
-        </a>
+
       </footer>
     </main>
   );

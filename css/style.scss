@@ -4,9 +4,8 @@ html, body {
   padding: 0;
   line-height: 1.5;
   color: var(--color-dark-gray);
-}
+  letter-spacing:0.015rem;
 
-:root {
   --max-width-s : 640px;
   --max-width-m : 1024px;
   --max-width-l : 1440px;
@@ -14,6 +13,34 @@ html, body {
   --baseline : 30px;
 
   --color-dark-gray: #212121;
+
+  --col-light: hsl(34, 0%, 85%);
+  --col-primary: hsl(34, 0%, 62%);
+  --col-dark: hsl(35, 0%, 19%);
+  --col-background: hsl(34, 0%, 3%);
+  --col-background-2:hsl(35, 0%, 5%);
+  --col-accent: hsl(17, 0%, 62%);
+  --col-negative: hsl(10, 55%, 46%);
+  --col-positive: hsl(209, 45%, 51%);
+  --col-hover: white;
+  --col-negative-hover: hsl(10, 100%, 70%);
+
+  --font-primary: sans-serif;
+  --font-code: monospace;
+  --font-narrow: sans-serif;
+
+  overflow: auto;
+}
+
+* { box-sizing: border-box; }
+
+#__next{
+  height:100vh;
+}
+
+:root {
+
+  
 }
 
 img {

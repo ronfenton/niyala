@@ -5,6 +5,8 @@ import { Type as ArticleType } from '../../collections/Article';
 import NotFound from '../../components/NotFound';
 import Head from '../../components/Head';
 import RenderBlocks from '../../components/RenderBlocks';
+import Navbar from '../../components/Navbar';
+import styles from './compendiumblocks.module.css'
 
 export type Props = {
   page?: ArticleType
@@ -24,10 +26,13 @@ const ArticlePage:React.FC<Props> = (props) => {
         description={page.meta?.description}
         keywords={page.meta?.keywords}
       />
-      <header>
-        <h1>{page.title}</h1>
-      </header>
-      <RenderBlocks layout={page.sections[0].layout} />
+      <Navbar statusCode={200} />
+      <div className={styles.blockcontainer}>
+        <header>
+          <h1>{page.title}</h1>
+        </header>
+        <RenderBlocks layout={page.sections[0].layout} />
+      </div>
   </div>
 }
 
