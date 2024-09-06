@@ -3,6 +3,8 @@ import { config as dotenv } from 'dotenv';
 import { generate } from './pages/api/randomBackground';
 import { handleAction as handleCSAction, printDebug as printCSDebug, getByID, subscribeHandler } from './characterApp/app';
 import { Attribute, Character, Environment, PrompterSettings, Identity } from './characterApp/types';
+import { whatIs } from './pages/api/whatis';
+import { Type as DefinitionType } from './collections/Definition'
 
 dotenv();
 
@@ -56,8 +58,12 @@ const setupSlashCommands = async () => {
 const discordCommands = [
   {
     name: "random-background",
-    description: "Generate a random background for a Megastructure B7 Resident",
-  }
+    description: "Generate a random background for a Megastructure B7 Resident.",
+  },
+  new SlashCommandBuilder()
+  .setName('what-is')
+  .setDescription('Retrieves the definition of a given term')
+  .addStringOption(option => option.setName('search_term').setDescription('Character ID').setRequired(true))
 ]
 
 const charSheetEventHandler = (charID:string, data:{event: string, payload: any}) => {
@@ -147,25 +153,43 @@ const handleDiscordActions2 = async (i:Interaction) => {
   }
 }
 
+const toEmbed = (data: DefinitionType) => {
+  console.log(data)
+  const newEmbed = new EmbedBuilder()
+    .setTitle(data.term)
+    .setDescription(data.content)
+    .setFields(
+      {name: 'Other terms', value: data.otherTerms.join(', ')},
+      {name: 'Related Article', value: data.linkedArticle, inline:true}
+    )
+  return newEmbed
+}
+
 const handleInteraction = async (i:Interaction) => {
   if (!i.isChatInputCommand()) { return; }
 
   await i.deferReply();
 
-
-  switch(i.commandName) {
-    case "random-background": 
-      await i.editReply(generate())
-      break;
-    case 'debug': 
-      await handleDiscordActions2(i);
-      break;
-    case 'character': 
-      await handleDiscordActions2(i);
-      break;
-    default:
-      await i.editReply(`Unhandled command: ${i.commandName}`)
-      break;
+  try {
+    switch(i.commandName) {
+      case "random-background": 
+        await i.editReply(generate())
+        break;
+      case "what-is":
+        await i.editReply({ embeds: [toEmbed(await whatIs(i.options.getString('search_term')))]})
+      case 'debug': 
+        await handleDiscordActions2(i);
+        break;
+      case 'character': 
+        await handleDiscordActions2(i);
+        break;
+      default:
+        await i.editReply(`Unhandled command: ${i.commandName}`)
+        break;
+    }
+  } catch (e) {
+    console.error(`Discord error: ${e.message}`)
+    i.editReply(`This interaction failed - talk to Dingo and tell him what you were doin.`)
   }
 }
 

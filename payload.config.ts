@@ -6,6 +6,7 @@ import Media from './collections/Media';
 import Post from './collections/Post';
 import Tag from './collections/Tag';
 import Article from './collections/Article';
+import Definition from './collections/Definition';
 import { cloudStorage } from '@payloadcms/plugin-cloud-storage';
 import { s3Adapter } from '@payloadcms/plugin-cloud-storage/s3';
 import ICComment from './collections/ICComment';
@@ -27,6 +28,7 @@ export default buildConfig({
     Article,
     ICComment,
     Speaker,
+    Definition,
   ],
   plugins: [
     // Pass the plugin to Payload
