@@ -1,8 +1,8 @@
 import React from 'react'
-import { faHouse } from '@awesome.me/kit-b100d6751d/icons/classic/solid'
 import {faMcCamtech, faMcTark, faMcTireppi, faMcPhoenix, faMcNeravue, faMcMoondale, faMcEverotech} from '@awesome.me/kit-b100d6751d/icons/kit/custom'
+import { byPrefixAndName } from '@awesome.me/kit-b100d6751d/icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { IconProp } from '@fortawesome/fontawesome-svg-core'
+import type { IconProp } from '@fortawesome/fontawesome-svg-core'
 
 const iconMap = {
   mcCamtech: faMcCamtech as IconProp,
@@ -15,7 +15,7 @@ const iconMap = {
 }
 
 const Component:React.FC<{icon:string}> = (props) => {
-  return <FontAwesomeIcon {...props} icon={iconMap[props.icon]} />
+  return <FontAwesomeIcon {...props} icon={iconMap[props.icon] || byPrefixAndName.fas[props.icon]} />
 }
 
 export default Component

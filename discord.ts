@@ -3,7 +3,7 @@ import { config as dotenv } from 'dotenv';
 import { generate } from './pages/api/randomBackground';
 import { handleAction as handleCSAction, printDebug as printCSDebug, getByID, subscribeHandler } from './characterApp/app';
 import { Attribute, Character, Environment, PrompterSettings, Identity } from './characterApp/types';
-import { whatIs } from './pages/api/whatis';
+import { whatIs, WhatIsDefinition } from './pages/api/whatis';
 import { Type as DefinitionType } from './collections/Definition'
 
 dotenv();
@@ -64,6 +64,7 @@ const discordCommands = [
   .setName('what-is')
   .setDescription('Retrieves the definition of a given term')
   .addStringOption(option => option.setName('search_term').setDescription('Character ID').setRequired(true))
+  .addBooleanOption(option => option.setName('public').setDescription('Post definition publically?').setRequired(false))
 ]
 
 const charSheetEventHandler = (charID:string, data:{event: string, payload: any}) => {
@@ -153,15 +154,13 @@ const handleDiscordActions2 = async (i:Interaction) => {
   }
 }
 
-const toEmbed = (data: DefinitionType) => {
-  console.log(data)
-  const newEmbed = new EmbedBuilder()
+const toEmbed = (data: WhatIsDefinition) => {
+  let newEmbed = new EmbedBuilder()
     .setTitle(data.term)
-    .setDescription(data.content)
-    .setFields(
-      {name: 'Other terms', value: data.otherTerms.join(', ')},
-      {name: 'Related Article', value: data.linkedArticle, inline:true}
-    )
+    .setDescription(data.description)
+  
+  data.otherTerms !== undefined ? newEmbed.addFields({name: 'Other terms', value: data.otherTerms.join(', ')}) : {}
+  data.linkedArticle !== undefined ? newEmbed.addFields({name: 'Linked Article', value: `[${data.linkedArticle.title}](${data.linkedArticle.url})`}) : {}
   return newEmbed
 }
 

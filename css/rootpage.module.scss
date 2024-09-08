@@ -1,0 +1,32 @@
+.recentList {
+  display: flex;
+  flex-direction:column;
+  gap: 0.25em;
+  div {
+    border: 1px solid var(--col-dark);
+    font-size: 0.8em;
+  };
+  a {
+    width: 100%;
+    text-align: center;
+    padding: 0.5em 1em;
+    border-radius: 0.5em;
+    border: 1px solid var(--col-dark);
+    color: var(--col-primary);
+    background-color: var(--col-background-2);
+    &:hover {
+      color: var(--col-light);
+      border: 1px solid var(--col-primary);
+      background-color: var(--col-background);
+    }
+  }
+}
+
+.recentBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  padding: 0.5em;
+  border: 1px solid var(--col-primary);
+  background-color: 1px solid var(--col-background);
+}

@@ -1,4 +1,5 @@
-import { ArrayField, BlockField, CheckboxField, CollectionConfig, SelectField } from 'payload/types';
+import { CollectionConfig } from 'payload/types';
+import formatSlug from '../utilities/formatSlug';
 import { Sidebar } from '../blocks/Sidebar/Config';
 import { Type as SidebarType } from '../blocks/Sidebar/Component';
 import { Image } from '../blocks/Image/Config';
@@ -21,8 +22,7 @@ export type Layout = ContentType | ImageType | SidebarType | MarkdownContentType
 export type Type = {
   name: string
   slug: string
-  hidden: boolean,
-  sections: TSection[]
+  layout: Layout[]
   meta: {
     title?: string
     description?: string
@@ -31,71 +31,33 @@ export type Type = {
 }
 
 export const Article: CollectionConfig = {
-  slug: 'articles',
+  slug: 'briefs',
   admin: {
-    useAsTitle: 'name',
-    group: 'Compendium',
-    description: 'General world documents, mixed IC/OOC.',
-    defaultColumns: ['name','meta.description'],
+    useAsTitle: 'title',
+    group: 'Campaign',
+    description: 'Documents related to the Campaign specifically.'
   },
   access: {
     read: (): boolean => true, // Everyone can read Pages
   },
   fields: [
     {
-      name: 'slug',
-      label: 'Slug',
-      type: 'text',
-      unique: true,
-      admin: {
-        hidden: true,
-      }
-    },
-    {
       name: 'name',
-      label: 'Article  Title',
+      label: 'Brief  Title',
       type: 'text',
       required: true,
     },
     {
-      name: 'category',
-      type: 'relationship',
-      relationTo: 'categories',
+      name: 'layout',
+      label: 'Layout',
+      type: 'blocks',
+      blocks: [
+        Content,
+        Image,
+        Sidebar,
+        MarkdownContent,
+      ],
     },
-    {
-      name: 'hidden',
-      label: 'Hidden',
-      type: 'checkbox',
-      defaultValue: false,
-      required: true,
-    } as CheckboxField,
-    {
-      name: 'sections',
-      type: 'array',
-      label: 'Sections',
-      minRows: 1,
-      fields: [
-        {
-          name: 'type',
-          label: 'Section Type',
-          type: 'select',
-          options: ['OOC','IC'],
-          required: true,
-          defaultValue: 'OOC',
-        } as SelectField,
-        {
-          name: 'layout',
-          label: 'Layout',
-          type: 'blocks',
-          blocks: [
-            Content,
-            Image,
-            Sidebar,
-            MarkdownContent,
-          ],
-        } as BlockField
-      ]
-    } as ArrayField,
     {
       name: 'meta',
       label: 'Page Meta',
@@ -117,6 +79,12 @@ export const Article: CollectionConfig = {
           type: 'text',
         },
       ],
+    },
+    {
+      name: 'slug',
+      type: 'text',
+      unique: true,
+      hidden: true,
     },
   ],
   hooks: {
@@ -141,10 +109,10 @@ export const Article: CollectionConfig = {
           ? `\n> ${args.doc.meta.description}` 
           : ""
         if(args.operation === 'create') {
-          channel.send(`*New Article:* **[${args.doc.name}](https://niyala.net/compendium/${args.context.slug})**${description}`.trim())
+          channel.send(`*New Campaign Brief:* **[${args.doc.name}](https://niyala.net/brief/${args.context.slug})**${description}`.trim())
           return;
         }
-        channel.send(`*Updated Article:* **[${args.doc.name}](https://niyala.net/compendium/${args.context.slug})**${description}`.trim())
+        channel.send(`*Updated Campaign Brief:* **[${args.doc.name}](https://niyala.net/brief/${args.context.slug})**${description}`.trim())
         return;
       }
     ]

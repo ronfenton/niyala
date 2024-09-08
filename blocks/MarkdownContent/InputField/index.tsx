@@ -1,5 +1,5 @@
 import React from 'react'
-import { useFieldType } from 'payload/components/forms';
+import { TextInput, useFieldType } from 'payload/components/forms';
 import Markdown from '../../../components/Markdown';
 import { Button } from 'payload/components';
 

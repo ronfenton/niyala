@@ -20,9 +20,10 @@ const ICComment: CollectionConfig = {
     plural: 'IC Comments',
   },
   admin: {
-    useAsTitle: 'name',
-    defaultColumns: ['name', 'id'],
+    useAsTitle: 'speaker.name',
+    defaultColumns: ['speaker.name', 'article.name', 'layout'],
     group: 'Compendium',
+    description: 'In-Character commentary appended to Articles.'
   },
   access: {
     read: () => true,
@@ -30,7 +31,7 @@ const ICComment: CollectionConfig = {
   fields: [
     {
       name: 'layout',
-      label: 'Layout',
+      label: 'Content',
       type: 'blocks',
       blocks: [
         Content,

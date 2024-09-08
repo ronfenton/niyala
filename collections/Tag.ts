@@ -7,6 +7,7 @@ const Tag: CollectionConfig = {
     useAsTitle: 'name',
     defaultColumns: ['name', 'id'],
     group: 'Blog',
+    description: 'Tags for organising or searching blog posts, esp. for RSS feeds',
   },
   access: {
     read: () => true,

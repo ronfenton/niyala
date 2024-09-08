@@ -7,6 +7,8 @@ import { CallToAction } from '../blocks/CallToAction/Config';
 import { Type as CallToActionType } from '../blocks/CallToAction/Component';
 import { Content } from '../blocks/Content/Config';
 import { Type as ContentType } from '../blocks/Content/Component';
+import { MarkdownContent } from '../blocks/MarkdownContent/Config';
+import { kebabCase } from 'lodash/fp';
 
 
 export type Layout = CallToActionType | ContentType | ImageType
@@ -26,15 +28,16 @@ export type Type = {
 export const Post: CollectionConfig = {
   slug: 'posts',
   admin: {
-    useAsTitle: 'title',
+    useAsTitle: 'name',
     group: 'Blog',
+    description: 'Blog posts for development',
   },
   access: {
     read: (): boolean => true, // Everyone can read Pages
   },
   fields: [
     {
-      name: 'title',
+      name: 'name',
       label: 'Post  Title',
       type: 'text',
       required: true,
@@ -47,6 +50,7 @@ export const Post: CollectionConfig = {
       blocks: [
         Content,
         Image,
+        MarkdownContent,
       ],
     },
     {
@@ -82,16 +86,21 @@ export const Post: CollectionConfig = {
       name: 'slug',
       label: 'Post Slug',
       type: 'text',
-      admin: {
-        position: 'sidebar',
-      },
-      hooks: {
-        beforeValidate: [
-          formatSlug('title'),
-        ],
-      },
+      hidden: true,
     },
   ],
+  hooks: {
+    beforeChange: [
+      async (args) => {
+        const doc = {
+          ...args.data,
+          slug: kebabCase(args.data.name)
+        }
+        args.context.slug = doc.slug
+        return doc
+      }
+    ],
+  }
 };
 
 export default Post;

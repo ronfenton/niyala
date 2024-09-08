@@ -3,75 +3,56 @@ import payload from 'payload';
 import { GetServerSideProps } from 'next';
 import getConfig from 'next/config';
 import { Type as PageType } from '../collections/Page';
+import { Type as DefinitionType } from '../collections/Definition';
 import NotFound from '../components/NotFound';
 import Head from '../components/Head';
 import classes from '../css/page.module.scss';
 import RenderBlocks from '../components/RenderBlocks';
+import Navbar from '../components/Navbar';
 
 const { publicRuntimeConfig: { SERVER_URL } } = getConfig();
 
 export type Props = {
-  page?: PageType
+  page: PageType
   statusCode: number
+  definitions: DefinitionType[]
 }
-
-const Layout: React.FC<Props> = (props) => {
-  return (
-    <main>
-      <Head>
-
-      </Head>
-      <header>
-        
-      </header>
-      { /* content */ }
-      <footer>
-
-      </footer>
-    </main>
-  )
-}
-
 
 const Page: React.FC<Props> = (props) => {
-  const { page } = props;
+  const { page, definitions } = props;
 
   if (!page) {
     return (<NotFound />)
   }
 
   return (
-    <main className={classes.page + ' retropunk themed'}>
+    <div>
       <Head
         title={page.meta?.title || page.title}
         description={page.meta?.description}
         keywords={page.meta?.keywords}
       />
-      <header className={classes.header}>
-        <h1>{page.title}</h1>
-      </header>
+      <Navbar statusCode={200} />
       <div className="page-panel">
-      <div className={classes.featuredImage}>
-        {page.image && (
-          <img
-            src={`${SERVER_URL}/media/${page.image.sizes?.feature?.filename || page.image.filename}`}
-            alt={page.image.alt}
-          />
-        )}
-      </div>
-      <RenderBlocks layout={page.layout} />
+        <header className={classes.header}>
+          <h1>{page.title}</h1>
+        </header>
+        <RenderBlocks layout={page.layout} />
+        {
+          definitions.map(x => <div key={x.slug}><em><strong>{x.name}</strong>{x.otherTerms.length > 0 ? ` (Also: ${x.otherTerms.map(y => y.name).join(', ')})` : ''}</em><br/><sup>{x.content}</sup></div>)
+        }
       </div>
       <footer className={classes.footer}>
 
       </footer>
-    </main>
+    </div>
   );
 };
 
 export default Page;
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const slug = ctx.params?.slug ? ctx.params.slug : 'home';
+  const slug = 'definitions';
 
   const pageQuery = await payload.find({
     collection: 'pages',
@@ -82,17 +63,16 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
     },
   });
 
-  if (!pageQuery.docs[0]) {
-    ctx.res.statusCode = 404;
-
-    return {
-      props: {},
-    };
-  }
+  const definitionsQuery = await payload.find({
+    collection: 'definitions',
+    limit: 0,
+    depth: 2,
+  })
 
   return {
     props: {
       page: pageQuery.docs[0],
+      definitions:  definitionsQuery.docs
     },
   };
 };

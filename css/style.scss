@@ -52,28 +52,34 @@ h1, h2, h3, h4 {
   line-height: 1.2;
 }
 
-h1 { font-size: 80px; }
+h1 { font-size: 2rem; }
 
-h2 { font-size: 60px; }
+h2 { font-size: 1.8rem; }
 
-h3 { font-size: 40px; }
+h3 { font-size: 1.6rem; }
 
-h4 { font-size: 30px; }
+h4 { font-size: 1.4rem; }
 
-h5 { font-size: 25px; }
+h5 { font-size: 1.2rem; }
 
-h6 { font-size: 20px; }
+h6 { font-size: 1.1rem; }
 
-@media (max-width: 1024px) {
-  h1 { font-size: 50px; }
+a {
+  color: var(--col-light);
+  &:hover {
+    text-shadow: 0 0 2px var(--col-light);
+  }
+}
 
-  h2 { font-size: 35px; }
-
-  h3 { font-size: 30px; }
-
-  h4 { font-size: 25px; }
-
-  h5 { font-size: 20px; }
-
-  h6 { font-size: 18px; }
+.page-panel {
+  width: calc(100% - 20px);
+  max-width: 1024px;
+  margin: 3rem auto;
+  background-color: var(--col-background);
+  border: 1px solid var(--col-primary);
+  padding: 10px;
+  header h1 {
+    border-bottom: 3px solid var(--col-dark);
+    border-radius: 3px;
+  }
 }

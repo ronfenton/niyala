@@ -1,18 +1,18 @@
 import React from 'react';
 import payload from 'payload';
 import { GetServerSideProps } from 'next';
-import { Type as ArticleType } from '../../collections/Article';
+import { Type as BriefType } from '../../collections/Brief';
 import NotFound from '../../components/NotFound';
 import Head from '../../components/Head';
 import RenderBlocks from '../../components/RenderBlocks';
 import Navbar from '../../components/Navbar';
 
 export type Props = {
-  page?: ArticleType
+  page?: BriefType
   statusCode: number
 }
 
-const ArticlePage:React.FC<Props> = (props) => {
+const BriefPage:React.FC<Props> = (props) => {
   const { page } = props;
 
   if (!page) {
@@ -30,17 +30,17 @@ const ArticlePage:React.FC<Props> = (props) => {
         <header>
           <h1>{page.name}</h1>
         </header>
-        <RenderBlocks layout={page.sections[0].layout} />
+        <RenderBlocks layout={page.layout} />
       </div>
   </div>
 }
 
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const slug = ctx.params?.slug
+  const slug = ctx.params?.slug ? ctx.params.slug : 'home';
 
   const postQuery = await payload.find({
-    collection: 'articles',
+    collection: 'briefs',
     where: {
       slug: {
         equals: slug,
@@ -55,7 +55,6 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
       props: {},
     };
   }
-  console.log(JSON.stringify(postQuery.docs[0].category))
 
   return {
     props: {
@@ -64,4 +63,4 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
   };
 };
 
-export default ArticlePage
+export default BriefPage

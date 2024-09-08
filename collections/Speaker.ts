@@ -6,6 +6,7 @@ const Speaker: CollectionConfig = {
     useAsTitle: 'name',
     defaultColumns: ['name', 'id'],
     group: 'Compendium',
+    description: 'Speaker details for IC Comments.'
   },
   access: {
     read: () => true,

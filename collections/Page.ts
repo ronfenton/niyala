@@ -5,11 +5,13 @@ import { Image } from '../blocks/Image/Config';
 import { Type as ImageType } from '../blocks/Image/Component';
 import { CallToAction } from '../blocks/CallToAction/Config';
 import { Type as CallToActionType } from '../blocks/CallToAction/Component';
+import { MarkdownContent } from '../blocks/MarkdownContent/Config';
+import { Type as MarkdownContentType } from '../blocks/MarkdownContent/Component';
 import { Content } from '../blocks/Content/Config';
 import { Type as ContentType } from '../blocks/Content/Component';
 
 
-export type Layout = CallToActionType | ContentType | ImageType
+export type Layout = CallToActionType | ContentType | ImageType | MarkdownContentType
 
 export type Type = {
   title: string
@@ -54,6 +56,7 @@ export const Page: CollectionConfig = {
         CallToAction,
         Content,
         Image,
+        MarkdownContent,
       ],
     },
     {
