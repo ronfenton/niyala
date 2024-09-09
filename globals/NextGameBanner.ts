@@ -1,7 +1,11 @@
 import { GlobalConfig } from 'payload/types'
+import { MediaType } from '../collections/Media'
+import getConfig from 'next/config';
 
 export type Type = {
-  someVal: string
+  scheduled: Date,
+  title: string,
+  image: MediaType,
 }
 
 const NextGameBanner: GlobalConfig = {

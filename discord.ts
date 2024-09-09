@@ -2,9 +2,8 @@ import { Client, REST, Routes, Events, GatewayIntentBits, Interaction, TextChann
 import { config as dotenv } from 'dotenv';
 import { generate } from './pages/api/randomBackground';
 import { handleAction as handleCSAction, printDebug as printCSDebug, getByID, subscribeHandler } from './characterApp/app';
-import { Attribute, Character, Environment, PrompterSettings, Identity } from './characterApp/types';
+import { Attribute, Character, Environment, PrompterSettings } from './characterApp/types';
 import { whatIs, WhatIsDefinition } from './pages/api/whatis';
-import { Type as DefinitionType } from './collections/Definition'
 
 dotenv();
 
