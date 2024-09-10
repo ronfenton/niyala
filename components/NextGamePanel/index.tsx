@@ -13,17 +13,21 @@ const { publicRuntimeConfig: { SERVER_URL } } = getConfig();
 const NextGamePanel:React.FC<NextGamePanelType> = (props) => {
   dayjs.extend(localizedFormat)
   const {image} = props
-  return <div>
-    <h5>{props.title}</h5>
-    <h6>{props.subtitle}</h6>
-    <sub><strong>Scheduled:</strong> {props.scheduled !== undefined ? dayjs(props.scheduled).format('LLL') : 'TBA'} </sub>
+  return <div className={classes.container}>
+    <div className={classes.schedule}>
+      <div>Next Game Session.</div>
+      <span><strong>Scheduled:</strong> {props.scheduled !== undefined ? dayjs(props.scheduled).format('LLL') : 'TBA'}</span>
+    </div>
+      <h1>{props.title}</h1>
+      <h2>{props.subtitle}</h2>
+    <sub></sub>
         {image && (
           <Image
             src={`${SERVER_URL}/media/${image.sizes?.banner?.filename || image.filename}`}
             alt={image.alt}
             style={{maxWidth:'100%',objectFit:'contain',height:'auto'}}
-            width={2176}
-            height={644}
+            width={1000}
+            height={250}
           />
         )}
     <div>

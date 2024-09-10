@@ -7,8 +7,12 @@ module.exports = {
   },
   images: {
     domains: [
-      'localhost',
       `192.168.1.120`,
+      '127.0.0.1',
+      'niyala.net',
+      'https://niyala.net',
+      'www.niyala.net',
+      'https://www.niyala.net',
       // Your domain(s) here
     ],
     deviceSizes: sizes,

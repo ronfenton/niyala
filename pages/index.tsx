@@ -82,7 +82,6 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
     slug: 'next-game',
     depth: 5,
   })
-  console.log(nextGame);
 
   const articles = await payload.find({
     collection: 'articles',

@@ -4,6 +4,9 @@ import { generate } from './pages/api/randomBackground';
 import { handleAction as handleCSAction, printDebug as printCSDebug, getByID, subscribeHandler } from './characterApp/app';
 import { Attribute, Character, Environment, PrompterSettings } from './characterApp/types';
 import { whatIs, WhatIsDefinition } from './pages/api/whatis';
+import type { Type as NextGameType } from './globals/NextGameBanner'
+import payload from 'payload';
+import dayjs from 'dayjs';
 
 dotenv();
 
@@ -58,6 +61,10 @@ const discordCommands = [
   {
     name: "random-background",
     description: "Generate a random background for a Megastructure B7 Resident.",
+  },
+  {
+    name: 'next-game',
+    description: 'Find out when the next game is',
   },
   new SlashCommandBuilder()
   .setName('what-is')
@@ -172,6 +179,13 @@ const handleInteraction = async (i:Interaction) => {
     switch(i.commandName) {
       case "random-background": 
         await i.editReply(generate())
+        break;
+      case 'next-game': {
+        const nextGame = await payload.findGlobal({slug:'next-game'}) as unknown as NextGameType;
+        nextGame.scheduled === undefined  
+          ? await i.editReply('The next game has not yet been scheduled - let\'s hope it comes soon!')
+          : await i.editReply(`The next game, ${nextGame.title}, is scheduled for <t:${dayjs(nextGame.scheduled).unix()}:f>.`)
+        }
         break;
       case "what-is":
         await i.editReply({ embeds: [toEmbed(await whatIs(i.options.getString('search_term')))]})
