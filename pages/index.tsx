@@ -3,8 +3,9 @@ import payload from 'payload';
 import { GetServerSideProps } from 'next';
 import getConfig from 'next/config';
 import { Type as PageType } from '../collections/Page';
-import { Type as BriefType } from '../collections/Article';
-import { Type as ArticleType } from '../collections/Brief';
+import { Type as ArticleType } from '../collections/Article';
+import { Type as BriefType } from '../collections/Brief';
+import { Type as NextGameBannerType } from '../globals/NextGameBanner';
 import NotFound from '../components/NotFound';
 import Head from '../components/Head';
 import classes from '../css/page.module.scss';
@@ -12,6 +13,7 @@ import RenderBlocks from '../components/RenderBlocks';
 import Navbar from '../components/Navbar';
 import Link from 'next/link';
 import styles from '../css/rootpage.module.scss'
+import NextGamePanel from '../components/NextGamePanel';
 
 const { publicRuntimeConfig: { SERVER_URL } } = getConfig();
 
@@ -19,11 +21,12 @@ export type Props = {
   page?: PageType
   articles: ArticleType[],
   briefs: BriefType[],
+  banner: NextGameBannerType,
   statusCode: number
 }
 
 const Page: React.FC<Props> = (props) => {
-  const { page, articles, briefs } = props;
+  const { page, articles, briefs, banner } = props;
   console.log(briefs[0]);
 
   if (!page) {
@@ -39,9 +42,7 @@ const Page: React.FC<Props> = (props) => {
       />
       <Navbar statusCode={200} />
       <div className="page-panel">
-        <header className={classes.header}>
-          <h1>{page.title}</h1>
-        </header>
+        <NextGamePanel {...banner}/>
         <RenderBlocks layout={page.layout} />
         <div className={styles.recentBlock}>
           <div className={styles.recentList}>
@@ -77,6 +78,12 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
     },
   });
 
+  const nextGame = await payload.findGlobal({
+    slug: 'next-game',
+    depth: 5,
+  })
+  console.log(nextGame);
+
   const articles = await payload.find({
     collection: 'articles',
     sort: '-updatedAt',
@@ -101,6 +108,7 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
       page: pageQuery.docs[0],
       briefs: briefs.docs,
       articles: articles.docs,
+      banner: nextGame,
     },
   };
 };

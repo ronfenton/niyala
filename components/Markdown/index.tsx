@@ -15,7 +15,7 @@ const Markdown: React.FC<{
       FAI: {
         component: FontAwesomeIcon
       },
-      ...(options.overrides || {})
+      ...(options?.overrides || {})
     },
   }} {...rest}>{children as string}</ReactMarkdown>
 }

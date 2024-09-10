@@ -13,4 +13,17 @@ const markdownField: Field = {
   }
 }
 
+export const markdownFieldGenerator = (name:string): Field => { 
+  return {
+    name: name,
+    type: 'textarea',
+    admin: {
+      components: {
+        Cell,
+        Field:InputField,
+      }
+    }
+  }
+}
+
 export default markdownField

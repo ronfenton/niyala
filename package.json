@@ -33,6 +33,7 @@
     "@payloadcms/richtext-slate": "^1.5.2",
     "axios": "^1.4.0",
     "copyfiles": "^2.4.1",
+    "dayjs": "^1.11.13",
     "discord.js": "^14.11.0",
     "dotenv": "^16.0.0",
     "escape-html": "^1.0.3",

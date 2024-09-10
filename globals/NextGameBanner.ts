@@ -1,11 +1,15 @@
 import { GlobalConfig } from 'payload/types'
 import { MediaType } from '../collections/Media'
 import getConfig from 'next/config';
+import Cell from '../blocks/MarkdownContent/Cell';
+import markdownField, { markdownFieldGenerator } from '../blocks/MarkdownContent/payloadconfig';
 
 export type Type = {
   scheduled: Date,
   title: string,
+  subtitle: string,
   image: MediaType,
+  description: string,
 }
 
 const NextGameBanner: GlobalConfig = {
@@ -17,10 +21,15 @@ const NextGameBanner: GlobalConfig = {
   label: 'Next Game Banner',
   fields: [
     {
-      name: 'Title',
+      name: 'title',
       type: 'text',
       required: true,
       label: 'Session Name'
+    },
+    {
+      name: 'subtitle',
+      type: 'text',
+      label: 'Subtitle'
     },
     {
       name: 'scheduled',
@@ -34,6 +43,7 @@ const NextGameBanner: GlobalConfig = {
         }
       }
     },
+    markdownFieldGenerator('description'),
     {
       name: 'image',
       label: 'Featured Image',

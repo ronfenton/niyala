@@ -16,6 +16,16 @@ export type MediaType = {
       width: number
       height: number
     }
+    banner?: {
+      filename: string
+      width: number
+      height: number
+    }
+    icon?: {
+      filename: string
+      width: number
+      height: number
+    }
   }
 }
 
@@ -40,6 +50,16 @@ const Media: CollectionConfig = {
         width: 1024,
         height: 576,
       },
+      {
+        name: 'banner',
+        width: 1000,
+        height: 250,
+      },
+      {
+        name: 'icon',
+        width: 100,
+        height: 60
+      }
     ],
   },
   fields: [
