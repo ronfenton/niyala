@@ -7075,6 +7075,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"augmented-ui@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "augmented-ui@npm:2.0.0"
+  checksum: 10c0/630c1603e97ef552e8c7955db75d64d2db41c32549ca3c6adc68c09359781a1ffa4a480f3c5fff3e52ca0255b76f7463c6cfd445750963e7fb8dc278441d85a0
+  languageName: node
+  linkType: hard
+
 "autoprefixer@npm:^10.4.14":
   version: 10.4.20
   resolution: "autoprefixer@npm:10.4.20"
@@ -13789,6 +13796,7 @@ __metadata:
     "@types/react": "npm:^18"
     "@typescript-eslint/eslint-plugin": "npm:^8.3.0"
     "@typescript-eslint/parser": "npm:^8.3.0"
+    augmented-ui: "npm:^2.0.0"
     axios: "npm:^1.4.0"
     babel-jest: "npm:^29.6.1"
     copyfiles: "npm:^2.4.1"

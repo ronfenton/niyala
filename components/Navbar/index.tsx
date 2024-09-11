@@ -59,7 +59,8 @@ const Navbar:React.FC<Props> = () => {
   },[visibleChats])
 
   return <div className={responsive ? [styles.navContainer,styles.responsive].join(' ') : styles.navContainer}>
-    <Image width={570} height={18*2}src='/images/niyala.png' className={styles.brand} alt={''}/>
+    <Image width={400} height={100}src='/images/niyala.png' className={styles.brand} alt={''}/>
+    <div data-augmented-ui="all-hex border" style={{filter:' blur(0.21em) brightness(1.25)'}}/>
     <div className={styles.navOptions}>{options.map(x => <Link key={x.path} className={x.disabled ? styles.disabled : ''} href={x.disabled ? '/' : x.path}>{x.text}</Link>)}</div>
     <div className={styles.expandToggle} onClick={() => setResponsive(!responsive)}><FAIcon icon="bars"/></div>
     <div className={styles.console}>

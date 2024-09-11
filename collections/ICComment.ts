@@ -1,16 +1,22 @@
 import { CollectionConfig } from 'payload/types';
-import { Content } from '../blocks/Content/Config';
-import { Type as ContentType } from '../blocks/Content/Component'
+import { MarkdownContent } from '../blocks/MarkdownContent/Config';
+import type { Type as MarkdownContentType } from '../blocks/MarkdownContent/Component';
+import type { Type as SpeakerType } from './Speaker'
+import type { Type as ArticleType } from './Article'
+import type { Type as ImageType } from '../blocks/Image/Component';
 import { Image } from '../blocks/Image/Config';
-import { Type as ImageType } from '../blocks/Image/Component';
 
-export type Layout = ContentType | ImageType
+export type Layout = MarkdownContentType | ImageType
+
+export type CommentType = {
+  speaker: SpeakerType,
+  deleted: boolean,
+  content: Layout[],
+}
 
 export type Type = {
-  layout: Layout[],
-  article: string,
-  replyToComment?: string,
-  deleted: boolean,
+  article: ArticleType,
+  comments: CommentType[]
 }
 
 const ICComment: CollectionConfig = {
@@ -20,8 +26,8 @@ const ICComment: CollectionConfig = {
     plural: 'IC Comments',
   },
   admin: {
-    useAsTitle: 'speaker.name',
-    defaultColumns: ['speaker.name', 'article.name', 'layout'],
+    useAsTitle: 'article',
+    defaultColumns: ['article'],
     group: 'Compendium',
     description: 'In-Character commentary appended to Articles.'
   },
@@ -30,37 +36,41 @@ const ICComment: CollectionConfig = {
   },
   fields: [
     {
-      name: 'layout',
-      label: 'Content',
-      type: 'blocks',
-      blocks: [
-        Content,
-        Image,
-      ]
-    },
-    {
       name: 'article',
       type: 'relationship',
       relationTo: 'articles',
       required: true,
+      unique: true,
+      maxDepth: 0,
     },
     {
-      name: 'speaker',
-      type: 'relationship',
-      relationTo: 'speakers',
-      required: true,
-    },
-    {
-      name: 'replyToComment',
-      type: 'relationship',
-      relationTo: 'iccomments',
-      required: false,
-    },
-    {
-      name: 'deleted',
-      type: 'checkbox',
-      defaultValue: false,
-    },
+      name: 'comments',
+      type: 'array',
+      minRows: 1,
+      fields: [
+        {
+          name: 'speaker',
+          label: 'Speaker',
+          type: 'relationship',
+          relationTo: 'speakers',
+        },
+        {
+          name: 'content',
+          label: 'Content',
+          type: 'blocks',
+          blocks: [
+            MarkdownContent,
+            Image
+          ],
+        },
+        {
+          name: 'deleted',
+          label: 'Deleted (cosmetic)',
+          type: 'checkbox',
+          defaultValue: false,
+        }
+      ]
+    }
   ],
 }
 

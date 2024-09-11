@@ -1,6 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&display=swap");
-/* @import url('https://fonts.cdnfonts.com/css/khand'); Old Narrow Font. */
+@import url('https://fonts.cdnfonts.com/css/cyberverse');
 @import url("https://fonts.cdnfonts.com/css/assailand");
 
 .themed {
@@ -22,7 +22,7 @@
   --col-disabled: hsl(35, 45%, 35%);
   letter-spacing:0.025em;
 
-  --font-heading: sans-serif;
+  --font-heading: "Cyberverse", sans-serif;
   --font-primary: "Chakra Petch", "Roboto", sans-serif;
   --font-code: "Share Tech Mono", monospace;
   --font-narrow: "Assailand", "Arial Narrow", sans-serif;

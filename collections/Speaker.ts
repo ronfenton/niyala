@@ -1,4 +1,12 @@
 import { CollectionConfig } from 'payload/types';
+import { MediaType } from './Media';
+import type { Type as ArticleType } from './Article';
+
+export type Type = {
+  name: string,
+  image: MediaType,
+  relatedArticle: ArticleType,
+}
 
 const Speaker: CollectionConfig = {
   slug: 'speakers',
@@ -30,6 +38,7 @@ const Speaker: CollectionConfig = {
       label: 'Profile Article',
       type: 'relationship',
       relationTo: 'articles',
+      maxDepth: 0,
     }
   ],
 }

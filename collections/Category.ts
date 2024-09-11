@@ -28,6 +28,9 @@ const Category: CollectionConfig = {
       name: 'slug',
       type: 'text',
       localized: true,
+      admin: {
+        hidden: true,
+      }
     },
   ],
   hooks: {

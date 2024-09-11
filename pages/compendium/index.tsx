@@ -1,7 +1,7 @@
 import React from 'react';
 import payload from 'payload';
 import { GetServerSideProps } from 'next';
-import { Type as ArticleType } from '../../collections/Article';
+import { Type as CategoryType } from '../../collections/Category';
 import NotFound from '../../components/NotFound';
 import Head from '../../components/Head';
 import RenderBlocks from '../../components/RenderBlocks';
@@ -9,14 +9,14 @@ import Navbar from '../../components/Navbar';
 import Link from 'next/link';
 
 export type Props = {
-  pages: ArticleType[]
+  categories: CategoryType[]
   statusCode: number
 }
 
 const AllArticlesPage:React.FC<Props> = (props) => {
-  const { pages } = props;
+  const { categories } = props;
 
-  if (!pages) {
+  if (!categories) {
     return <NotFound />;
   }
 
@@ -32,7 +32,7 @@ const AllArticlesPage:React.FC<Props> = (props) => {
           <h1>The Compendium</h1>
         </header>
         <ul>
-        {pages.map(x => <li key={x.slug}><Link href={`/compendium/${x.slug}`}>{x.name}</Link></li>)}
+        {categories.map(x => <li key={x.slug}><Link href={`/compendium/category/${x.slug}`}>{x.name}</Link></li>)}
         </ul>
       </div>
   </div>
@@ -41,7 +41,7 @@ const AllArticlesPage:React.FC<Props> = (props) => {
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
   const postQuery = await payload.find({
-    collection: 'articles',
+    collection: 'categories',
     sort: 'name',
   });
 
@@ -55,7 +55,7 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
 
   return {
     props: {
-      pages: postQuery.docs,
+      categories: postQuery.docs,
     },
   };
 };

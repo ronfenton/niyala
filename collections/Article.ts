@@ -7,6 +7,7 @@ import { Content } from '../blocks/Content/Config';
 import { Type as ContentType } from '../blocks/Content/Component';
 import { MarkdownContent } from '../blocks/MarkdownContent/Config';
 import { Type as MarkdownContentType } from '../blocks/MarkdownContent/Component';
+import { Type as CategoryType } from './Category'
 import { getGlobalDiscord } from '../discord';
 import { TextChannel } from 'discord.js';
 import { kebabCase } from 'lodash/fp';
@@ -22,7 +23,8 @@ export type Type = {
   name: string
   slug: string
   hidden: boolean,
-  sections: TSection[]
+  sections: TSection[],
+  categories: CategoryType[],
   meta: {
     title?: string
     description?: string
@@ -58,9 +60,13 @@ export const Article: CollectionConfig = {
       required: true,
     },
     {
-      name: 'category',
-      type: 'relationship',
-      relationTo: 'categories',
+      name: 'categories',
+      type: 'array',
+      fields: [{
+        name: 'category',
+        type: 'relationship',
+        relationTo: 'categories',
+      }]
     },
     {
       name: 'hidden',

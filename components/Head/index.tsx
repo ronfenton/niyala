@@ -8,7 +8,7 @@ const { publicRuntimeConfig: { SERVER_URL } } = getConfig();
 const defaultDescription = 'Boilerplate for combining Payload CMS and NextJS into a single Node server';
 const defaultTitle = 'Payload CMS + NextJS Custom Server';
 const titleSuffix = ' | Payload CMS';
-const defaultOGImage = `${SERVER_URL}/images/og-image.jpg`;
+const defaultOGImage = `${SERVER_URL}/images/niyala_logo.svg`;
 const defaultKeywords = 'NextJS, Payload CMS, boilerplate';
 
 type Props = {
@@ -34,7 +34,7 @@ const Head: React.FC<Props> = ({ title, description, ogImage, keywords }) => {
       <link
         rel="icon"
         type="image/x-icon"
-        href="/favicon.svg"
+        href="/favicon.png"
       />
       <meta
         name="description"

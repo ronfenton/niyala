@@ -6,6 +6,7 @@ config.autoAddCss = false
 
 import '../css/style.scss';
 import '../css/themes.scss';
+import '../css/augmented-ui.min.css';
 
 const MyApp = ({ Component, pageProps }: AppProps): React.ReactElement => (
   <div className="themed retropunk">

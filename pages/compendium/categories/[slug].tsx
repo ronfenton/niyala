@@ -54,8 +54,8 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
     payload.find({
       collection: 'articles',
       where: {
-        'category.slug': {
-          equals: slug,
+        'categories.category.slug': {
+          contains: slug,
         }
       },
       sort: 'name',

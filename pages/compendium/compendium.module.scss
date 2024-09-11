@@ -1,0 +1,32 @@
+.comment {
+  display: flex;
+  gap: 1em;
+  img {
+    border: 1px solid var(--col-dark);
+    border-radius: 0.25em;
+    height: 2em;
+    width: 2em;
+    object-fit: cover;
+  }
+  .commentFrame {
+    flex-grow: 1;
+    .content {
+      border: 1px solid var(--col-primary);
+      font-family: var(--font-narrow);
+      font-size: 0.9em;
+      padding: 0.25em 1em;
+    }
+    .signature {
+      font-family: var(--font-code);
+      font-size: 0.9em;
+      text-align: right;
+    }
+  }
+}
+
+.commentField {
+  padding: 2em;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}

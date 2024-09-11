@@ -46,8 +46,10 @@ const Definition: CollectionConfig = {
       name: 'slug',
       type: 'text',
       localized: false,
-      hidden: true,
       unique: true,
+      admin: {
+        hidden: true,
+      }
     },
     {
       name: 'content',
@@ -78,7 +80,9 @@ const Definition: CollectionConfig = {
           name: 'slug',
           label: "Search Term",
           type: 'text',
-          hidden: true,
+          admin: {
+            hidden: true,
+          }
         }
       ]
     }

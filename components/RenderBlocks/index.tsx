@@ -1,11 +1,12 @@
 import React from 'react';
 import { Layout as PageLayout } from '../../collections/Page';
 import { Layout as ArticleLayout } from '../../collections/Article';
+import { Layout as CommentLayout } from '../../collections/ICComment';
 import { components } from '../../blocks';
 import classes from './index.module.css';
 
 type Props = {
-  layout: (PageLayout | ArticleLayout)[]
+  layout: (PageLayout | ArticleLayout | CommentLayout)[]
   className?: string
 }
 

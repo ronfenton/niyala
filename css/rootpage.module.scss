@@ -1,9 +1,9 @@
 .recentList {
+  grid-area: new;
   display: flex;
   flex-direction:column;
   gap: 0.25em;
   div {
-    border: 1px solid var(--col-dark);
     font-size: 0.8em;
   };
   a {
@@ -23,10 +23,25 @@
 }
 
 .recentBlock {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-areas: 
+    "desc"
+    "new";
   gap: 0.25em;
-  padding: 0.5em;
-  border: 1px solid var(--col-primary);
-  background-color: 1px solid var(--col-background);
+  padding: 0.5em 1em;
+  background-color: var(--col-background-2);
+  margin: 1em 3em;
+  border-radius: 2em;
+}
+
+.recentDesc {
+  grid-area: desc;
+}
+
+
+@media screen and (min-width: 600px) {
+  .recentBlock {
+    grid-template-areas: "desc new";
+    grid-template-columns: 60%;
+  }
 }

@@ -45,12 +45,20 @@ const Page: React.FC<Props> = (props) => {
         <NextGamePanel {...banner}/>
         <RenderBlocks layout={page.layout} />
         <div className={styles.recentBlock}>
+          <div className={styles.recentDesc}>
+            <h2>Campaign Briefs</h2>
+            <p>Guides, campaign guidance, rules and mechanics for participation in the Niyalan Cyberpunk campaign - both those that relate to the gameplay, and the story.</p>
+          </div>
           <div className={styles.recentList}>
             <div>Most Recent Campaign Briefs.</div>
             {briefs.map(x => <Link href={`/brief/${x.slug}`}>{x.name}</Link>)}
           </div>
         </div>
         <div className={styles.recentBlock}>
+          <div className={styles.recentDesc}>
+            <h2>The Compendium</h2>
+            <p>A repository of articles covering the setting and world lore of Niyala, at the time of the Cyberpunk Campaign. Consider the pages a form of in-character wikipedia.</p>
+          </div>
           <div className={styles.recentList}>
             <div>Most Recent Articles.</div>
             {articles.map(x => <Link href={`/compendium/${x.slug}`}>{x.name}</Link>)}

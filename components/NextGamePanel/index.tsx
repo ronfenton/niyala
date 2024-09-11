@@ -5,7 +5,6 @@ import getConfig from 'next/config';
 import Image from 'next/image';
 import dayjs from 'dayjs';
 import localizedFormat from 'dayjs/plugin/localizedFormat'
-import RichText from '../RichText';
 import Markdown from '../Markdown';
 
 const { publicRuntimeConfig: { SERVER_URL } } = getConfig();
@@ -13,23 +12,24 @@ const { publicRuntimeConfig: { SERVER_URL } } = getConfig();
 const NextGamePanel:React.FC<NextGamePanelType> = (props) => {
   dayjs.extend(localizedFormat)
   const {image} = props
-  return <div className={classes.container}>
+  return <div className={classes.container} data-augmented-ui="tl-2-clip br-clip-x bl-clip border">
     <div className={classes.schedule}>
-      <div>Next Game Session.</div>
-      <span><strong>Scheduled:</strong> {props.scheduled !== undefined ? dayjs(props.scheduled).format('LLL') : 'TBA'}</span>
+      <div className={classes.next}>Next Game Session:</div>
+      <span><strong>Scheduled</strong> {props.scheduled !== undefined ? dayjs(props.scheduled).format('LLL') : 'TBA'}</span>
     </div>
       <h1>{props.title}</h1>
       <h2>{props.subtitle}</h2>
-    <sub></sub>
+      <div className={classes.imgFrame} data-augmented-ui="tl-2-clip br-clip-x bl-clip border">
         {image && (
           <Image
             src={`${SERVER_URL}/media/${image.sizes?.banner?.filename || image.filename}`}
             alt={image.alt}
-            style={{maxWidth:'100%',objectFit:'contain',height:'auto'}}
             width={1000}
             height={250}
+            style={{display:'block'}}
+            
           />
-        )}
+        )}</div>
     <div>
       <Markdown style={{fontSize:'0.75em'}}>{props.description}</Markdown>
     </div>
