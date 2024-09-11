@@ -9,6 +9,16 @@ export type Props = {
   statusCode: number
 }
 
+const NavLink:React.FC<{text:string,path:string,disabled?:boolean}> = (props) => {
+  const {text,path,disabled} = props;
+  return <Link 
+    className={disabled !== true ? styles.cyberPunk : [styles.cyberPunk,styles.disabled].join(' ')}
+    data-augmented-ui="border"
+    href={disabled ? '/' : path}
+    // className={disabled ? styles.disabled : ''}
+    ><span>./{text}</span></Link>
+}
+
 const options: { text:string, path: string, icon?:string, disabled?: boolean}[] = [
   {
     text: 'home',
@@ -58,10 +68,9 @@ const Navbar:React.FC<Props> = () => {
     return () => {clearInterval(interval)}
   },[visibleChats])
 
-  return <div className={responsive ? [styles.navContainer,styles.responsive].join(' ') : styles.navContainer}>
+  return <div data-augmented-ui="border br-2-clip-x bl-2-clip-x" className={responsive ? [styles.navContainer,styles.responsive].join(' ') : styles.navContainer}>
     <Image width={400} height={100}src='/images/niyala.png' className={styles.brand} alt={''}/>
-    <div data-augmented-ui="all-hex border" style={{filter:' blur(0.21em) brightness(1.25)'}}/>
-    <div className={styles.navOptions}>{options.map(x => <Link key={x.path} className={x.disabled ? styles.disabled : ''} href={x.disabled ? '/' : x.path}>{x.text}</Link>)}</div>
+    <div className={styles.navOptions}>{options.map(x => <NavLink {...x} />)}</div>
     <div className={styles.expandToggle} onClick={() => setResponsive(!responsive)}><FAIcon icon="bars"/></div>
     <div className={styles.console}>
       <code>{visibleChats[0]}<br/>

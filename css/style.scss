@@ -6,7 +6,7 @@ html, body {
   color: var(--color-dark-gray);
   letter-spacing:0.015rem;
 
-  --max-width-s : 640px;
+  --max-width-s : 480px;
   --max-width-m : 1024px;
   --max-width-l : 1440px;
 
@@ -72,7 +72,7 @@ a {
 }
 
 .page-panel {
-  width: calc(100% - 20px);
+  width: var(--max-width-s);
   max-width: 1024px;
   margin: 3rem auto;
   background-color: var(--col-background);
@@ -82,4 +82,57 @@ a {
     border-bottom: 3px solid var(--col-dark);
     border-radius: 3px;
   }
+}
+
+
+@media screen and (min-width: 1024px) {
+  .page-panel {
+    width: var(--max-width-m);
+  }
+}
+
+@media screen and (min-width: 1600px) {
+  .page-panel {
+    width: var(--max-width-l);
+  }
+}
+
+.deck {
+  margin: 0 auto;
+  height: 100vh;
+  background-color: rgb(30, 34, 34);
+  width: 1200px;
+  border-left: 5px solid hsla(180, 6%, 25%, 0.5);
+  border-right: 5px solid hsla(180, 6%, 25%, 0.5);
+  box-shadow: 0 0 24px rgb(30, 34, 34);
+  padding: 0.5em 4em;
+
+  .deckScreen {
+    height: 100%;
+    background-color: black;
+    --aug-border-bg: hsla(180, 7%, 47%, 0.5);
+    --aug-t-extend1: 8em;
+    --aug-t: 2em;
+    --aug-b-extend1: 40em;
+    --aug-tl: 2em;
+    --aug-tr: 2em;
+    --aug-bl: 2em;
+    --aug-br: 2em;
+
+  }
+    .deckStatus {
+      padding: 0.45em 1.5em 0.2em;
+      border-bottom: 1px solid #333;
+      color: white;
+      display: flex;
+      justify-content:space-between;
+      font-family: var(--font-narrow);
+      font-size: 1.1em;
+      .deckConnection {
+        display:flex;
+        justify-content:end;
+        gap:1em;
+        align-items: center;
+      }
+    }
 }

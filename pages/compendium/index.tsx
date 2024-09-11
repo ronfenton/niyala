@@ -26,7 +26,6 @@ const AllArticlesPage:React.FC<Props> = (props) => {
         description='A register of all Niyalan campaign setting information'
         keywords=''
       />
-      <Navbar statusCode={200} />
       <div className="page-panel">
         <header>
           <h1>The Compendium</h1>

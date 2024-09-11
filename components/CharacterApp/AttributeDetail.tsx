@@ -9,7 +9,6 @@ const AttributeDetail:React.FC<{a:CharacterAttribute,itemKey:string}> = ({a,item
   React.useEffect(() => {
     if (isMounted.current) {
       const delayDebounceFn = setTimeout(() => { 
-        console.log("Finished editing") 
         dispatch({type:"SET_ATTR",payload:{key:itemKey,data:state}})
       },3000)
       return () => clearTimeout(delayDebounceFn)

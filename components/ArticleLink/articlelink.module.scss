@@ -1,0 +1,59 @@
+.linkBox{
+  display: block;
+  height: 3em;
+  width: 16em;
+  --aug-border-all:1px;
+  --aug-border-bg:var(--col-dark);
+  --aug-tl:0.35em;
+  --aug-tl-inset1:4em;
+  --aug-br:0.35em;
+  --aug-br-inset1:4em;
+  display: flex;
+  align-items: center;
+  background-color: var(--col-background);
+  transition: 1s;
+  .icon{
+    display: block;
+    position: absolute;
+    --aug-clip-br1:initial;
+    --aug-br1:10px;
+    --aug-border-all:1px;
+    --aug-border-bg:var(--col-dark);
+    opacity: 0.1;
+    transition:1.5s;
+    height: 100%;
+    width: 55px;
+    display: flex;
+    align-items: center;
+    left:-15px;
+    img {
+      transition: 1.5s;
+      object-fit:cover;
+      height:55px;
+      width:55px;
+    }
+  }
+  span{
+    flex-grow: 1;
+    padding-left: 3em;
+    padding-right: 2em;
+    transition:1.5s;
+  }
+}
+
+.linkBox:hover {
+  background-color: var(--col-background-2);
+  .icon{
+    opacity: 0.5;
+    width: 60px;
+    transition: 2s;
+    left:-5px;
+    img {
+      width: 60px;
+    }
+  }
+  span{
+    padding-left: 4em;
+    padding-right: 1em;
+  }
+}

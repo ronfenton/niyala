@@ -32,7 +32,6 @@ const Page: React.FC<Props> = (props) => {
         description={page.meta?.description}
         keywords={page.meta?.keywords}
       />
-      <Navbar statusCode={200} />
       <div className="page-panel">
         <header className={classes.header}>
           <h1>{page.title}</h1>

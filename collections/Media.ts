@@ -58,7 +58,7 @@ const Media: CollectionConfig = {
       {
         name: 'icon',
         width: 100,
-        height: 60
+        height: 100
       }
     ],
   },

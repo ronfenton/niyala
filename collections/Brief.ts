@@ -84,7 +84,9 @@ export const Article: CollectionConfig = {
       name: 'slug',
       type: 'text',
       unique: true,
-      hidden: true,
+      admin: {
+        hidden: true
+      }
     },
   ],
   hooks: {

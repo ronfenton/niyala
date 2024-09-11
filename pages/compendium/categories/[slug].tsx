@@ -7,6 +7,9 @@ import NotFound from '../../../components/NotFound';
 import Head from '../../../components/Head';
 import Navbar from '../../../components/Navbar';
 import Link from 'next/link';
+import classes from './categories.module.scss'
+import Image from 'next/image';
+import ArticleLink from '../../../components/ArticleLink';
 
 export type Props = {
   articles: ArticleType[],
@@ -26,14 +29,13 @@ const ArticlePage:React.FC<Props> = (props) => {
         title={category.name}
         description={category.name + ' articles'}
       />
-      <Navbar statusCode={200} />
       <div className="page-panel">
         <header>
           <h1>Category: {category.name}</h1>
         </header>
-        <ul>
-          {articles.map(x => <li key={x.slug}><Link href={`/compendium/${x.slug}`}>{x.name}</Link></li>)}
-        </ul>
+        <div>
+          {articles.map(x => <ArticleLink {...x}/>)}
+        </div>
       </div>
   </div>
 }

@@ -1,5 +1,6 @@
 import { ArrayField, BlockField, CheckboxField, CollectionConfig, SelectField } from 'payload/types';
 import { Sidebar } from '../blocks/Sidebar/Config';
+import { MediaType } from './Media';
 import { Type as SidebarType } from '../blocks/Sidebar/Component';
 import { Image } from '../blocks/Image/Config';
 import { Type as ImageType } from '../blocks/Image/Component';
@@ -22,6 +23,8 @@ export type Layout = ContentType | ImageType | SidebarType | MarkdownContentType
 export type Type = {
   name: string
   slug: string
+  icon?: MediaType
+  backupImage: 'city' | 'landscape' | 'car' | 'gun' | 'woman' | 'man' | 'magic' | 'tech' | 'story' | 'world'
   hidden: boolean,
   sections: TSection[],
   categories: CategoryType[],
@@ -67,6 +70,18 @@ export const Article: CollectionConfig = {
         type: 'relationship',
         relationTo: 'categories',
       }]
+    },
+    {
+      name: 'icon',
+      label: 'Icon Image',
+      type: 'upload',
+      relationTo: 'media',
+    },
+    {
+      name: 'backupImage',
+      type: 'select',
+      options: ['city' , 'landscape' , 'car' , 'gun' , 'woman' , 'man' , 'magic' , 'tech' , 'story', 'world'],
+      required: false
     },
     {
       name: 'hidden',

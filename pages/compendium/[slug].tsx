@@ -56,7 +56,6 @@ const ArticlePage:React.FC<Props> = (props) => {
         description={page.meta?.description}
         keywords={page.meta?.keywords}
       />
-      <Navbar statusCode={200} />
       <div className="page-panel">
         <header>
           <h1>{page.name}</h1>

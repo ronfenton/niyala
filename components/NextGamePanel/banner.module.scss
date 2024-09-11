@@ -2,15 +2,17 @@
   margin: 0.5em;
   padding: 1em;
   --aug-border-all:2px;
-  --aug-border-bg:var(--col-dark);
+  --aug-border-bg:var(--col-primary);
   --aug-br-inset1: 50%;
   --aug-br: 2em;
+  background-color:var(--col-background-2);
 
   .imgFrame {
-    --aug-border-all:1px;
-    --aug-border-bg:var(--col-dark);
-    --aug-br-inset1: 50%;
-    --aug-br: 2em;
+    --aug-border-all:2px;
+    --aug-border-bg: var(--col-primary);
+    --aug-br-inset1: 15%;
+    --aug-bl-inset2: 15%;
+    --aug-t-extend1: 20%;
   }
   img {
     width: 100%;

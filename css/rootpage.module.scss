@@ -2,23 +2,12 @@
   grid-area: new;
   display: flex;
   flex-direction:column;
-  gap: 0.25em;
+  gap: 0.5em;
   div {
     font-size: 0.8em;
   };
   a {
     width: 100%;
-    text-align: center;
-    padding: 0.5em 1em;
-    border-radius: 0.5em;
-    border: 1px solid var(--col-dark);
-    color: var(--col-primary);
-    background-color: var(--col-background-2);
-    &:hover {
-      color: var(--col-light);
-      border: 1px solid var(--col-primary);
-      background-color: var(--col-background);
-    }
   }
 }
 
@@ -28,10 +17,11 @@
     "desc"
     "new";
   gap: 0.25em;
-  padding: 0.5em 1em;
+  padding: 1em 2em;
   background-color: var(--col-background-2);
-  margin: 1em 3em;
-  border-radius: 2em;
+  margin: 0.5em 0.5em;
+  --aug-border-all: 1px;
+  --aug-border-bg: var(--col-dark);
 }
 
 .recentDesc {

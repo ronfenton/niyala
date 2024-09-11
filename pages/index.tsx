@@ -14,6 +14,8 @@ import Navbar from '../components/Navbar';
 import Link from 'next/link';
 import styles from '../css/rootpage.module.scss'
 import NextGamePanel from '../components/NextGamePanel';
+import ArticleLink from '../components/ArticleLink';
+import BriefLink from '../components/BriefLink';
 
 const { publicRuntimeConfig: { SERVER_URL } } = getConfig();
 
@@ -27,7 +29,6 @@ export type Props = {
 
 const Page: React.FC<Props> = (props) => {
   const { page, articles, briefs, banner } = props;
-  console.log(briefs[0]);
 
   if (!page) {
     return (<NotFound />)
@@ -40,28 +41,27 @@ const Page: React.FC<Props> = (props) => {
         description={page.meta?.description}
         keywords={page.meta?.keywords}
       />
-      <Navbar statusCode={200} />
       <div className="page-panel">
         <NextGamePanel {...banner}/>
         <RenderBlocks layout={page.layout} />
-        <div className={styles.recentBlock}>
+        <div className={styles.recentBlock} data-augmented-ui="tl-2-clip-x l-rect-y r-rect-y bl-2-clip-x tr-2-clip-x br-2-clip-x border">
           <div className={styles.recentDesc}>
             <h2>Campaign Briefs</h2>
             <p>Guides, campaign guidance, rules and mechanics for participation in the Niyalan Cyberpunk campaign - both those that relate to the gameplay, and the story.</p>
           </div>
           <div className={styles.recentList}>
             <div>Most Recent Campaign Briefs.</div>
-            {briefs.map(x => <Link href={`/brief/${x.slug}`}>{x.name}</Link>)}
+            {briefs.map(x => <BriefLink {...x} />)}
           </div>
         </div>
-        <div className={styles.recentBlock}>
+        <div className={styles.recentBlock} data-augmented-ui="tl-2-clip-x l-rect-y r-rect-y bl-2-clip-x tr-2-clip-x br-2-clip-x border">
           <div className={styles.recentDesc}>
             <h2>The Compendium</h2>
             <p>A repository of articles covering the setting and world lore of Niyala, at the time of the Cyberpunk Campaign. Consider the pages a form of in-character wikipedia.</p>
           </div>
           <div className={styles.recentList}>
             <div>Most Recent Articles.</div>
-            {articles.map(x => <Link href={`/compendium/${x.slug}`}>{x.name}</Link>)}
+            {articles.map(x => <ArticleLink {...x} />)}
           </div>
         </div>
       </div>
