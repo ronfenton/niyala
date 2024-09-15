@@ -9,8 +9,8 @@ import { Type as ContentType } from '../blocks/Content/Component';
 import { MarkdownContent } from '../blocks/MarkdownContent/Config';
 import { Type as MarkdownContentType } from '../blocks/MarkdownContent/Component';
 import { Type as CategoryType } from './Category'
-import { getGlobalDiscord } from '../discord';
-import { TextChannel } from 'discord.js';
+// import { getGlobalDiscord } from '../discord';
+// import { TextChannel } from 'discord.js';
 import { kebabCase } from 'lodash/fp';
 
 export type TSection = {
@@ -151,24 +151,24 @@ export const Article: CollectionConfig = {
         return doc
       }
     ],
-    afterChange: [
-      async (args) => {
-        if (args.doc.hidden === true) {
-          return args.doc;
-        }
-        const c = await getGlobalDiscord()
-        const channel = c.channels.cache.get(process.env.DISCORD_NEWS_CHANNEL_ID) as TextChannel
-        const description = args.doc.meta?.description 
-          ? `\n> ${args.doc.meta.description}` 
-          : ""
-        if(args.operation === 'create') {
-          channel.send(`*New Article:* **[${args.doc.name}](https://niyala.net/compendium/${args.context.slug})**${description}`.trim())
-          return;
-        }
-        channel.send(`*Updated Article:* **[${args.doc.name}](https://niyala.net/compendium/${args.context.slug})**${description}`.trim())
-        return;
-      }
-    ]
+    // afterChange: [
+    //   async (args) => {
+    //     if (args.doc.hidden === true) {
+    //       return args.doc;
+    //     }
+    //     const c = await getGlobalDiscord()
+    //     const channel = c.channels.cache.get(process.env.DISCORD_NEWS_CHANNEL_ID) as TextChannel
+    //     const description = args.doc.meta?.description 
+    //       ? `\n> ${args.doc.meta.description}` 
+    //       : ""
+    //     if(args.operation === 'create') {
+    //       channel.send(`*New Article:* **[${args.doc.name}](https://niyala.net/compendium/${args.context.slug})**${description}`.trim())
+    //       return;
+    //     }
+    //     channel.send(`*Updated Article:* **[${args.doc.name}](https://niyala.net/compendium/${args.context.slug})**${description}`.trim())
+    //     return;
+    //   }
+    // ]
   }
 };
 

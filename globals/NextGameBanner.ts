@@ -1,8 +1,6 @@
 import { GlobalConfig } from 'payload/types'
 import { MediaType } from '../collections/Media'
-import getConfig from 'next/config';
-import Cell from '../blocks/MarkdownContent/Cell';
-import markdownField, { markdownFieldGenerator } from '../blocks/MarkdownContent/payloadconfig';
+import { markdownFieldGenerator } from '../blocks/MarkdownContent/payloadconfig';
 
 export type Type = {
   scheduled: Date,

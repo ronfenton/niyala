@@ -59,8 +59,8 @@ const ICComment: CollectionConfig = {
           label: 'Content',
           type: 'blocks',
           blocks: [
-            MarkdownContent,
-            Image
+            // MarkdownContent,
+            // Image
           ],
         },
         {

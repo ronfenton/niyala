@@ -1,5 +1,6 @@
 import { Block } from 'payload/types';
-import Cell from './Cell'
+import { markdownFieldGenerator } from './payloadconfig';
+// import Cell from './Cell'
 
 export const MarkdownContent: Block = {
   slug: 'markdown',
@@ -8,16 +9,7 @@ export const MarkdownContent: Block = {
     plural: 'Markdown Content Blocks',
   },
   fields: [
-    {
-      name: 'content',
-      type: 'textarea',
-      required: true,
-      admin: {
-        components: {
-          Cell: Cell,
-        }
-      }
-    },
+    markdownFieldGenerator('content'),
   ],
 };
 

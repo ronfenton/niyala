@@ -33,6 +33,8 @@ export const whatIs = async (searchTerm:string):Promise<WhatIsDefinition> => {
   if(results.docs.length === 0) {
     throw new Error(`Definition ${searchTerm} does not exist`)
   }
+
+  //@ts-ignore
   const definition = results.docs[0] as (DefinitionType & {linkedArticle?: ArticleType});
 
   const doc:WhatIsDefinition = {

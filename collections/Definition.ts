@@ -3,6 +3,7 @@ import Cell from '../blocks/MarkdownContent/Cell'
 import InputField from '../blocks/MarkdownContent/InputField'
 import { Type as MarkdownContentType } from '../blocks/MarkdownContent/Component'
 import { kebabCase } from 'lodash';
+import { markdownFieldGenerator } from '../blocks/MarkdownContent/payloadconfig';
 
 export type Type = {
   name: string,
@@ -51,16 +52,7 @@ const Definition: CollectionConfig = {
         hidden: true,
       }
     },
-    {
-      name: 'content',
-      type: 'textarea',
-      admin: {
-        components: {
-          Cell,
-          Field:InputField,
-        }
-      }
-    },
+    markdownFieldGenerator('content'),
     {
       name: 'linkedArticle',
       type: 'relationship',

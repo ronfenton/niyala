@@ -1,5 +1,5 @@
-import { Block, Field, TextField } from 'payload/types';
-import Markdown from '../MarkdownContent/payloadconfig';
+import { Block } from 'payload/types';
+import { markdownFieldGenerator } from '../MarkdownContent/payloadconfig';
 
 export const Sidebar: Block = {
   slug: 'sidebar',
@@ -35,10 +35,7 @@ export const Sidebar: Block = {
           // name: 'content',
           // type: 'textarea',
         // }
-        {
-         ...Markdown,
-         name: 'content',
-        } as TextField,
+        markdownFieldGenerator('content')
       ]
     }
   ],

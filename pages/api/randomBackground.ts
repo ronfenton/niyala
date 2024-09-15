@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { TextChannel } from 'discord.js';
-import { getGlobalDiscord } from '../../discord';
+//import { getGlobalDiscord } from '../../discord';
 import { getGlobalIO } from '../../socketio';
 
 const species = [
@@ -169,25 +169,25 @@ export const generate = ():string => {
 };
 
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
-  if (req.method === 'GET') {
-    const generated = generate()
-    const discord = await getGlobalDiscord();
-    const channel = discord.channels.cache.get(
-      '1120775031564275804',
-    ) as TextChannel;
-    if (channel) {
-      channel.send({ content: `Via API: ${generated}` });
-      const io = await getGlobalIO()
-      io.to('messageRoom').emit('message',generated)
-      res.status(200).end();
-      return;
-    }
-    res.status(500).end();
-  } else {
-    res.status(404).end();
-  }
-}
+// export default async function handler(
+  // req: NextApiRequest,
+  // res: NextApiResponse,
+// ) {
+  // if (req.method === 'GET') {
+    // const generated = generate()
+    // const discord = await getGlobalDiscord();
+    // const channel = discord.channels.cache.get(
+      // '1120775031564275804',
+    // ) as TextChannel;
+    // if (channel) {
+      // channel.send({ content: `Via API: ${generated}` });
+      // const io = await getGlobalIO()
+      // io.to('messageRoom').emit('message',generated)
+      // res.status(200).end();
+      // return;
+    // }
+    // res.status(500).end();
+  // } else {
+    // res.status(404).end();
+  // }
+// }

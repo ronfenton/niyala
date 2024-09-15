@@ -1,31 +1,25 @@
-import { buildConfig } from 'payload/config';
 import { cloudStorage } from '@payloadcms/plugin-cloud-storage';
 import { s3Adapter } from '@payloadcms/plugin-cloud-storage/s3';
 import { slateEditor } from '@payloadcms/richtext-slate';
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
+import { buildConfig } from 'payload/config';
 import { webpackBundler } from '@payloadcms/bundler-webpack'
-import dotenv from 'dotenv';
-import path from 'path'
-
-import NextGameBanner from './globals/NextGameBanner';
-import Page from './collections/Page';
 import Media from './collections/Media';
-import Post from './collections/Post';
-import Tag from './collections/Tag';
 import Article from './collections/Article';
-import Category from './collections/Category';
 import Brief from './collections/Brief';
+import Category from './collections/Category';
 import Definition from './collections/Definition';
 import ICComment from './collections/ICComment';
+import Post from './collections/Post';
 import Speaker from './collections/Speaker';
-const createDiscordPath = path.resolve(__dirname, 'discord');
-const createIOPath = path.resolve(__dirname, 'socketio');
-const mockDiscordPath = path.resolve(__dirname, 'mocks/discord');
-const mockIOPath = path.resolve(__dirname, 'mocks/socketio');
-
-dotenv.config();
+import Tag from './collections/Tag';
+import NextGameBanner from './globals/NextGameBanner';
+import Page from './collections/Page';
 
 export default buildConfig({
+  admin: {
+    bundler: webpackBundler()
+  },
   serverURL: process.env.PAYLOAD_PUBLIC_SERVER_URL,
   collections: [
     Page,
@@ -43,7 +37,9 @@ export default buildConfig({
     url: process.env.MONGODB_URI,
   }),
   editor: slateEditor({}),
-  globals: [NextGameBanner],
+  globals: [
+    NextGameBanner
+  ],
   plugins: [
     // Pass the plugin to Payload
     cloudStorage({
@@ -67,18 +63,4 @@ export default buildConfig({
       },
     }),
   ],
-  admin: {
-    bundler:webpackBundler(),
-    webpack: (config) => ({
-      ...config,
-      resolve: {
-        ...config.resolve,
-        alias: {
-          ...config.resolve.alias,
-          [createDiscordPath]:mockDiscordPath,
-          [createIOPath]:mockIOPath, 
-        }
-      }
-    })
-  }
 });

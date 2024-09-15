@@ -4,7 +4,7 @@ import nextBuild from 'next/dist/build';
 import express from 'express';
 import payload from 'payload';
 import { config as dotenv } from 'dotenv';
-import { getGlobalDiscord } from './discord';
+//import { getGlobalDiscord } from './discord';
 import { getGlobalIO } from './socketio'
 import { getPayloadClient } from './payload';
 
@@ -16,7 +16,7 @@ const server = express();
 const port = Number(process.env.PORT) || 3000
 
 const start = async () => {
-  await getGlobalDiscord()
+//  await getGlobalDiscord()
   await getGlobalIO()
 
   const payload = await getPayloadClient({

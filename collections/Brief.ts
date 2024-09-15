@@ -8,7 +8,7 @@ import { Content } from '../blocks/Content/Config';
 import { Type as ContentType } from '../blocks/Content/Component';
 import { MarkdownContent } from '../blocks/MarkdownContent/Config';
 import { Type as MarkdownContentType } from '../blocks/MarkdownContent/Component';
-import { getGlobalDiscord } from '../discord';
+//import { getGlobalDiscord } from '../discord';
 import { TextChannel } from 'discord.js';
 import { kebabCase } from 'lodash/fp';
 
@@ -100,24 +100,24 @@ export const Article: CollectionConfig = {
         return doc
       }
     ],
-    afterChange: [
-      async (args) => {
-        if (args.doc.hidden === true) {
-          return args.doc;
-        }
-        const c = await getGlobalDiscord()
-        const channel = c.channels.cache.get(process.env.DISCORD_NEWS_CHANNEL_ID) as TextChannel
-        const description = args.doc.meta?.description 
-          ? `\n> ${args.doc.meta.description}` 
-          : ""
-        if(args.operation === 'create') {
-          channel.send(`*New Campaign Brief:* **[${args.doc.name}](https://niyala.net/brief/${args.context.slug})**${description}`.trim())
-          return;
-        }
-        channel.send(`*Updated Campaign Brief:* **[${args.doc.name}](https://niyala.net/brief/${args.context.slug})**${description}`.trim())
-        return;
-      }
-    ]
+    // afterChange: [
+    //   async (args) => {
+    //     if (args.doc.hidden === true) {
+    //       return args.doc;
+    //     }
+    //     const c = await getGlobalDiscord()
+    //     const channel = c.channels.cache.get(process.env.DISCORD_NEWS_CHANNEL_ID) as TextChannel
+    //     const description = args.doc.meta?.description 
+    //       ? `\n> ${args.doc.meta.description}` 
+    //       : ""
+    //     if(args.operation === 'create') {
+    //       channel.send(`*New Campaign Brief:* **[${args.doc.name}](https://niyala.net/brief/${args.context.slug})**${description}`.trim())
+    //       return;
+    //     }
+    //     channel.send(`*Updated Campaign Brief:* **[${args.doc.name}](https://niyala.net/brief/${args.context.slug})**${description}`.trim())
+    //     return;
+    //   }
+    // ]
   }
 };
 
